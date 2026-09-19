@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2>项目总览</h2>
+                    <p th:text="${homeProject != null ? homeProject.name + ' · 用爱管理看见本轮 Sprint 1' : '还没有项目，先去项目页新建'}">总览</p>
+                </div>
+                <div class="card-actions">
+                    <a class="btn ghost" th:href="@{/work}">打开任务看板</a>
+                    <a class="btn" href="/projects">全部项目</a>
+                </div>
+            </div>
+            <div class="hint-box">种子项目「22组-爱管理」就是我们自己的 Sprint 1 待办。评审演示的是自举：用爱管理管理爱管理。</div>
+            <div class="metrics">
+                <div class="metric"><span>任务总数</span><b th:text="${trend.total}">0</b><span>当前项目</span></div>
+                <div class="metric"><span>待办</span><b th:text="${trend.todo}">0</b><span>还没开工</span></div>
+                <div class="metric"><span>进行中</span><b th:text="${trend.doing}">0</b><span>正在推进</span></div>
+                <div class="metric"><span>完成率</span><b th:text="${trend.completionRate + '%'}">0%</b><span th:text="${'已完成 ' + trend.done + ' 条'}">已完成</span></div>
+            </div>
+            <div class="kanban">
+                <div class="kanban-col" th:each="col : ${columns}">
+                    <h3>
+                        <span>
+                            <i class="dot" th:classappend="${col.key}"></i>
+                            <span th:text="${col.key == 'todo' ? '待办' : (col.key == 'doing' ? '进行中' : '已完成')}">列</span>
+                        </span>
+                        <span class="muted" th:text="${col.value.size()}">0</span>
+                    </h3>
+                    <div class="kcard" th:each="t : ${col.value}">
+                        <div class="code" th:text="${t.storyCode != null ? t.storyCode : 'TASK'}">E1</div>
+                        <strong th:text="${t.title}">标题</strong>
+                        <div class="meta">
+                            <span th:text="${t.assigneeId == null ? '未分配' : userNames.get(t.assigneeId)}">人</span>
+                            <span class="pill" th:classappend="${t.status}" th:text="${t.status == 'todo' ? '待办' : (t.status == 'doing' ? '进行中' : '已完成')}">状态</span>
+                        </div>
+                    </div>
+                    <div class="empty" th:if="${col.value.isEmpty()}">这一列还没有任务</div>
+                </div>
+            </div>
+            <div class="bottom">
+                <div class="panel">
+                    <h3>近 7 日完成量</h3>
+                    <div class="week-chart" th:if="${trend.bars != null and !trend.bars.isEmpty()}">
+                        <div class="week-col" th:each="b : ${trend.bars}">
+                            <div class="week-val" th:text="${b.count}">0</div>
+                            <div class="week-bar-wrap">
+                                <div class="week-bar" th:style="|height:${b.height}px|" th:classappend="${b.count == 0} ? ' zero'"></div>
+                            </div>
+                            <span th:text="${b.label}">09-13</span>
+                        </div>
+                    </div>
+                    <p class="muted">柱子来自状态日志变成「已完成」的日期，不是写死数字。今天把一条任务改成已完成，今天的柱子会加 1。</p>
+                </div>
+                <div class="panel">
+                    <h3>最近动态</h3>
+                    <div class="act-item" th:each="l : ${logs}">
+                        <div class="time" th:text="${l.createdAt}">时间</div>
+                        <div>
+                            <div th:text="${taskTitles.get(l.taskId)}">任务</div>
+                            <div class="muted" th:text="${(l.fromStatus == null ? '新建' : l.fromStatus) + ' → ' + l.toStatus + ' · ' + userNames.get(l.operatorId)}">流转</div>
+                        </div>
+                    </div>
+                    <div class="empty" th:if="${logs == null or logs.isEmpty()}">还没有状态变更</div>
+                    <a class="btn ghost" style="margin-top:10px;" th:if="${homeProject != null}" th:href="@{|/projects/${homeProject.id}/timeline|}">查看完整时间轴</a>
+                </div>
+                <div class="panel">
+                    <h3>成员工作量</h3>
+                    <div th:if="${workloads != null}">
+                        <div class="bar-row" th:each="w : ${workloads}">
+                            <span th:text="${w.name}">人</span>
+                            <div class="bar-track"><div class="bar-fill" th:style="|width:${w.share}%|"></div></div>
+                            <span th:text="${w.total}">0</span>
+                        </div>
+                        <p class="muted">E1-09 Should：按负责人统计当前项目任务数，方便调配人力。</p>
+                    </div>
+                    <div class="empty" th:if="${workloads == null}">当前角色没有工作量权限，管理员登录后可见。</div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

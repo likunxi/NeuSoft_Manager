@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2 th:text="${comingTitle}">预留</h2>
+                    <p><span class="chip" th:text="${comingSprint}">Sprint</span> <span th:text="${comingSummary}">说明</span></p>
+                </div>
+                <div class="card-actions">
+                    <a class="btn ghost" th:if="${projectId != null}" th:href="@{|/projects/${projectId}/timeline|}">回时间轴</a>
+                    <a class="btn ghost" th:href="@{/work}">回任务看板</a>
+                </div>
+            </div>
+            <div class="hint-box">这是后两阶的预留界面：入口和布局先占住，本轮不做真实功能，避免范围蔓延。</div>
+            <div class="coming-canvas" th:if="${comingPage == 'gantt'}">
+                <div class="gantt-row" th:each="i : ${#numbers.sequence(1,5)}">
+                    <div class="gantt-name muted">任务泳道 <span th:text="${i}">1</span></div>
+                    <div class="gantt-lane"><div class="gantt-ghost" th:style="|margin-left:${i * 8}%;width:${20 + i * 6}%|"></div></div>
+                </div>
+            </div>
+            <div class="coming-canvas" th:if="${comingPage == 'story-map'}">
+                <div class="kanban">
+                    <div class="kanban-col e1"><h3>史诗</h3><div class="empty">Sprint 2 从这里挂用户故事</div></div>
+                    <div class="kanban-col e2"><h3>Must / Should</h3><div class="empty">发布切片位</div></div>
+                    <div class="kanban-col e3"><h3>任务拆解</h3><div class="empty">故事下的任务位</div></div>
+                </div>
+            </div>
+            <div class="coming-canvas uml-box" th:if="${comingPage == 'uml'}">
+                <div class="uml-node">User</div>
+                <div class="uml-line"></div>
+                <div class="uml-node">Task</div>
+                <div class="uml-line"></div>
+                <div class="uml-node">Project</div>
+                <p class="muted">关系线只是占位，Sprint 2 再生成。</p>
+            </div>
+            <div class="coming-canvas ai-box" th:if="${comingPage == 'ai'}">
+                <div class="ai-msg muted">系统：这里将出现拆解建议、进度预测和风险预警。本轮不调用模型。</div>
+                <div class="form-row">
+                    <input class="field" placeholder="输入需求…（本轮禁用）" disabled>
+                    <button class="btn" disabled>发送</button>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

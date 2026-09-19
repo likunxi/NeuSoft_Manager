@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2 th:text="${project.name + ' · 任务'}">任务</h2>
+                    <p>按状态、负责人或故事号筛选。新建任务可写 E1-01 这样的故事号。</p>
+                </div>
+                <a class="btn ghost" th:href="@{|/projects/${project.id}/board|}">回看板</a>
+            </div>
+            <form class="form-row" th:action="@{|/projects/${project.id}/tasks|}" method="post" th:if="${me.has('task:create')}">
+                <input class="field" name="storyCode" placeholder="故事号 E1-01" style="width:120px;">
+                <input class="field" name="title" placeholder="任务标题" required>
+                <input class="field" name="description" placeholder="说明（可选）">
+                <select class="field" name="assigneeId">
+                    <option value="">未分配</option>
+                    <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.displayName}"></option>
+                </select>
+                <button class="btn">新建任务</button>
+            </form>
+            <form class="filters" method="get" th:action="@{|/projects/${project.id}/tasks|}">
+                <input class="field" name="keyword" placeholder="标题或故事号" th:value="${keyword}">
+                <select class="field" name="status">
+                    <option value="">全部状态</option>
+                    <option value="todo" th:selected="${status == 'todo'}">待办</option>
+                    <option value="doing" th:selected="${status == 'doing'}">进行中</option>
+                    <option value="done" th:selected="${status == 'done'}">已完成</option>
+                </select>
+                <select class="field" name="assigneeId">
+                    <option value="">全部负责人</option>
+                    <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.displayName}" th:selected="${u.id == assigneeId}"></option>
+                </select>
+                <button class="btn ghost">筛选</button>
+            </form>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr><th>故事</th><th>标题</th><th>负责人</th><th>状态</th><th>操作</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="t : ${tasks}">
+                        <td><span class="tag" th:text="${t.storyCode}">E1</span></td>
+                        <td>
+                            <div th:text="${t.title}">标题</div>
+                            <div class="muted" th:text="${t.description}">说明</div>
+                        </td>
+                        <td th:text="${t.assigneeId == null ? '未分配' : userNames.get(t.assigneeId)}"></td>
+                        <td><span class="pill" th:classappend="${t.status}" th:text="${t.status == 'todo' ? '待办' : (t.status == 'doing' ? '进行中' : '已完成')}">状态</span></td>
+                        <td>
+                            <form class="form-row" style="margin:0;" th:action="@{|/tasks/${t.id}/assign|}" method="post" th:if="${me.has('task:assign')}">
+                                <input type="hidden" name="projectId" th:value="${project.id}">
+                                <select name="assigneeId" class="field">
+                                    <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.displayName}" th:selected="${u.id == t.assigneeId}"></option>
+                                </select>
+                                <button class="btn tiny ghost">指定</button>
+                            </form>
+                            <form class="form-row" style="margin:6px 0 0;" th:action="@{|/tasks/${t.id}/status|}" method="post">
+                                <input type="hidden" name="projectId" th:value="${project.id}">
+                                <select name="status" class="field">
+                                    <option value="todo" th:selected="${t.status == 'todo'}">待办</option>
+                                    <option value="doing" th:selected="${t.status == 'doing'}">进行中</option>
+                                    <option value="done" th:selected="${t.status == 'done'}">已完成</option>
+                                </select>
+                                <button class="btn tiny">更新</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="empty" th:if="${tasks.isEmpty()}">没有符合筛选条件的任务</div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2>任务看板</h2>
+                    <p>横轴是进阶阶段，竖轴是该阶段的任务。卡片左边的色条表示状态：灰=待办，蓝=进行中，绿=已完成。每张卡片都写所属项目，项目多了也不会混。</p>
+                </div>
+            </div>
+            <form class="form-row" action="/work/tasks" method="post" th:if="${me.has('task:create')}">
+                <select class="field" name="projectId" required>
+                    <option value="" disabled th:selected="${projectId == null}">选择所属项目</option>
+                    <option th:each="p : ${projects}" th:value="${p.id}" th:text="${p.name}" th:selected="${p.id == projectId}"></option>
+                </select>
+                <select class="field" name="stage">
+                    <option value="e1">进阶1 · 可视化</option>
+                    <option value="e2">进阶2 · 一体化</option>
+                    <option value="e3">进阶3 · AI化</option>
+                </select>
+                <input class="field" name="storyCode" placeholder="故事号 E1-01">
+                <input class="field" name="title" placeholder="任务标题" required>
+                <select class="field" name="assigneeId">
+                    <option value="">未分配</option>
+                    <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.displayName}"></option>
+                </select>
+                <button class="btn">新建任务</button>
+            </form>
+            <form class="filters" method="get" action="/work">
+                <select class="field" name="projectId">
+                    <option value="">全部项目</option>
+                    <option th:each="p : ${projects}" th:value="${p.id}" th:text="${p.name}" th:selected="${p.id == projectId}"></option>
+                </select>
+                <select class="field" name="status">
+                    <option value="">全部状态</option>
+                    <option value="todo" th:selected="${status == 'todo'}">待办</option>
+                    <option value="doing" th:selected="${status == 'doing'}">进行中</option>
+                    <option value="done" th:selected="${status == 'done'}">已完成</option>
+                </select>
+                <select class="field" name="assigneeId">
+                    <option value="">全部负责人</option>
+                    <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.displayName}" th:selected="${u.id == assigneeId}"></option>
+                </select>
+                <input class="field" name="keyword" placeholder="标题或故事号" th:value="${keyword}">
+                <button class="btn ghost">筛选</button>
+            </form>
+            <div class="legend">
+                <span><i class="dot todo"></i>待办</span>
+                <span><i class="dot doing"></i>进行中</span>
+                <span><i class="dot done"></i>已完成</span>
+                <span class="muted">看板已并进本页，不再单独开一列状态墙。</span>
+            </div>
+            <div class="kanban stage-board">
+                <div class="kanban-col" th:each="col : ${stages}" th:classappend="${col.key}">
+                    <h3>
+                        <span th:text="${stageLabels.get(col.key)}">阶段</span>
+                        <span class="muted" th:text="${col.value.size()}">0</span>
+                    </h3>
+                    <p class="stage-hint" th:text="${stageHints.get(col.key)}">说明</p>
+                    <div class="kcard" th:each="t : ${col.value}" th:classappend="${t.status}">
+                        <div class="kcard-top">
+                            <span class="code" th:text="${t.storyCode != null ? t.storyCode : 'TASK'}">E1</span>
+                            <span class="pill" th:classappend="${t.status}" th:text="${t.status == 'todo' ? '待办' : (t.status == 'doing' ? '进行中' : '已完成')}">状态</span>
+                        </div>
+                        <strong th:text="${t.title}">标题</strong>
+                        <div class="proj-tag" th:text="${'项目 · ' + projectNames.get(t.projectId)}">项目</div>
+                        <div class="meta">
+                            <span th:text="${t.assigneeId == null ? '未分配' : userNames.get(t.assigneeId)}">人</span>
+                        </div>
+                        <form class="form-row tight" th:action="@{|/tasks/${t.id}/assign|}" method="post" th:if="${me.has('task:assign')}">
+                            <input type="hidden" name="projectId" th:value="${t.projectId}">
+                            <input type="hidden" name="back" value="work">
+                            <select name="assigneeId" class="field">
+                                <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.displayName}" th:selected="${u.id == t.assigneeId}"></option>
+                            </select>
+                            <button class="btn tiny ghost">指定</button>
+                        </form>
+                        <form class="form-row tight" th:action="@{|/tasks/${t.id}/status|}" method="post">
+                            <input type="hidden" name="projectId" th:value="${t.projectId}">
+                            <input type="hidden" name="back" value="work">
+                            <select name="status" class="field">
+                                <option value="todo" th:selected="${t.status == 'todo'}">待办</option>
+                                <option value="doing" th:selected="${t.status == 'doing'}">进行中</option>
+                                <option value="done" th:selected="${t.status == 'done'}">已完成</option>
+                            </select>
+                            <button class="btn tiny">更新状态</button>
+                        </form>
+                    </div>
+                    <div class="empty" th:if="${col.value.isEmpty()}">这一阶段还没有任务</div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

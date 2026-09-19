@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2>项目</h2>
+                    <p>把工作从聊天记录搬到平台上。点进卡片就能看任务、看板和趋势。</p>
+                </div>
+            </div>
+            <form class="form-row" method="post" action="/projects" th:if="${me.has('project:create')}">
+                <input class="field" name="projectCode" placeholder="编码 AG-22" style="width:120px;">
+                <input class="field" name="name" placeholder="项目名" required>
+                <input class="field" name="description" placeholder="说明（可选）">
+                <button class="btn">新建项目</button>
+            </form>
+            <div class="projects">
+                <div class="pcard card-box" th:each="p : ${projects}">
+                    <div class="code" th:text="${p.projectCode}">AG-22</div>
+                    <h3 th:text="${p.name}">项目</h3>
+                    <p th:text="${p.description}">说明</p>
+                    <div class="card-actions">
+                        <a class="btn tiny" th:href="@{|/projects/${p.id}/tasks|}">任务看板</a>
+                        <a class="btn tiny ghost" th:if="${me.has('trend:view')}" th:href="@{|/projects/${p.id}/trend|}">趋势</a>
+                        <a class="btn tiny ghost" th:href="@{|/projects/${p.id}/timeline|}">时间轴</a>
+                    </div>
+                </div>
+            </div>
+            <div class="empty" th:if="${projects.isEmpty()}">还没有项目</div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

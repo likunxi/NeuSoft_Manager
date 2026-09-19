@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2 th:text="${user.displayName}">用户</h2>
+                    <p>用户名 <strong th:text="${user.username}">u</strong> · 当前角色 <strong th:text="${roleName}">角色</strong></p>
+                </div>
+                <a class="btn ghost" href="/users">回列表</a>
+            </div>
+            <div class="hint-box" th:if="${ok}" th:text="${ok}">成功</div>
+            <div class="account-grid">
+                <div class="panel">
+                    <h3>资料</h3>
+                    <form th:action="@{|/users/${user.id}/profile|}" method="post">
+                        <label class="muted">显示名</label>
+                        <input class="field" name="displayName" th:value="${user.displayName}" required>
+                        <label class="muted">学号</label>
+                        <input class="field" name="studentNo" th:value="${user.studentNo}">
+                        <button class="btn" style="margin-top:12px;">保存资料</button>
+                    </form>
+                </div>
+                <div class="panel">
+                    <h3>权限上调 / 下调</h3>
+                    <p class="muted">顺序：系统管理员 → 项目经理 → 团队成员。不能调自己，也不能撤掉最后一名管理员。</p>
+                    <div class="card-actions">
+                        <form th:action="@{|/users/${user.id}/role|}" method="post">
+                            <input type="hidden" name="direction" value="up">
+                            <button class="btn">权限上调</button>
+                        </form>
+                        <form th:action="@{|/users/${user.id}/role|}" method="post">
+                            <input type="hidden" name="direction" value="down">
+                            <button class="btn ghost">权限下调</button>
+                        </form>
+                    </div>
+                    <form class="form-row" style="margin-top:16px;" th:action="@{|/users/${user.id}/toggle|}" method="post">
+                        <input type="hidden" name="active" th:value="${user.isActive == 1 ? 0 : 1}">
+                        <button class="btn ghost" th:text="${user.isActive == 1 ? '停用账号' : '重新启用'}">停用</button>
+                    </form>
+                </div>
+                <div class="panel">
+                    <h3>重置密码</h3>
+                    <p class="muted">对方下次登录用这里设定的新密码。自己改密码请走「账号设置」。</p>
+                    <form th:action="@{|/users/${user.id}/password|}" method="post">
+                        <input class="field" type="password" name="newPassword" placeholder="新密码至少 6 位" required>
+                        <button class="btn" style="margin-top:12px;">重置密码</button>
+                    </form>
+                </div>
+            </div>
+            <div class="panel" style="margin-top:12px;">
+                <h3>TA 负责的任务</h3>
+                <table>
+                    <thead><tr><th>项目</th><th>故事</th><th>标题</th><th>状态</th></tr></thead>
+                    <tbody>
+                    <tr th:each="t : ${myTasks}">
+                        <td th:text="${projectNames.get(t.projectId)}">项目</td>
+                        <td><span class="tag" th:text="${t.storyCode}">E1</span></td>
+                        <td th:text="${t.title}">标题</td>
+                        <td><span class="pill" th:classappend="${t.status}" th:text="${t.status}">状态</span></td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="empty" th:if="${myTasks.isEmpty()}">还没有负责任务</div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

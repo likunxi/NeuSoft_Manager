@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2>权限地图</h2>
+                    <p>当前角色：<strong th:text="${me.roleName}">角色</strong>。绿=有权，灰=无权。</p>
+                </div>
+                <a class="btn ghost" href="/account">改我的资料 / 密码</a>
+            </div>
+            <div class="hint-box" th:text="${capability}">你可以……</div>
+            <div class="perm-grid">
+                <div class="card-box" style="padding:16px;" th:each="entry : ${grouped}">
+                    <h3 style="margin:0 0 10px;font-size:15px;" th:text="${entry.key}">史诗</h3>
+                    <div th:each="perm : ${entry.value}"
+                         th:classappend="${mineCodes.contains(perm.permCode)} ? 'perm-yes' : 'perm-no'">
+                        <div th:text="${perm.permName}">权限</div>
+                        <small th:text="${perm.permCode}">code</small>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

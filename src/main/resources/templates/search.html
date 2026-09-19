@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2>搜索任务</h2>
+                    <p th:if="${#strings.isEmpty(q)}">在顶栏输入标题或故事号，例如 E1-01</p>
+                    <p th:unless="${#strings.isEmpty(q)}">关键词：<span th:text="${q}">E1-01</span></p>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr><th>项目</th><th>故事</th><th>标题</th><th>负责人</th><th>状态</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="t : ${tasks}">
+                        <td th:text="${projectNames.get(t.projectId)}">项目</td>
+                        <td><span class="tag" th:text="${t.storyCode}">E1</span></td>
+                        <td th:text="${t.title}">标题</td>
+                        <td th:text="${t.assigneeId == null ? '未分配' : userNames.get(t.assigneeId)}"></td>
+                        <td><span class="pill" th:classappend="${t.status}" th:text="${t.status == 'todo' ? '待办' : (t.status == 'doing' ? '进行中' : '已完成')}">状态</span></td>
+                        <td><a class="btn tiny ghost" th:href="@{|/projects/${t.projectId}/board|}">看板</a></td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="empty" th:if="${#strings.isEmpty(q)}">先输入关键词</div>
+                <div class="empty" th:if="${!#strings.isEmpty(q) and tasks.isEmpty()}">没有匹配的任务</div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2 th:text="${project.name + ' · 看板'}">看板</h2>
+                    <p>三列固定：待办 / 进行中 / 已完成。改状态后卡片会换列。</p>
+                </div>
+                <div class="card-actions">
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/tasks|}">任务列表</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/timeline|}">时间轴</a>
+                    <a class="btn" th:if="${me.has('trend:view')}" th:href="@{|/projects/${project.id}/trend|}">趋势</a>
+                </div>
+            </div>
+            <div class="kanban">
+                <div class="kanban-col" th:each="col : ${columns}">
+                    <h3>
+                        <span>
+                            <i class="dot" th:classappend="${col.key}"></i>
+                            <span th:text="${col.key == 'todo' ? '待办' : (col.key == 'doing' ? '进行中' : '已完成')}">列</span>
+                        </span>
+                        <span class="muted" th:text="${col.value.size()}">0</span>
+                    </h3>
+                    <div class="kcard" th:each="t : ${col.value}">
+                        <div class="code" th:text="${t.storyCode != null ? t.storyCode : 'TASK'}">E1</div>
+                        <strong th:text="${t.title}">标题</strong>
+                        <div class="meta">
+                            <span th:text="${t.assigneeId == null ? '未分配' : userNames.get(t.assigneeId)}">人</span>
+                            <span class="muted" th:if="${t.dueDate != null}" th:text="${'截止 ' + t.dueDate}">日期</span>
+                        </div>
+                        <form class="form-row" style="margin-top:8px;margin-bottom:0;" th:action="@{|/tasks/${t.id}/status|}" method="post">
+                            <input type="hidden" name="projectId" th:value="${project.id}">
+                            <input type="hidden" name="back" value="board">
+                            <select name="status" class="field" onchange="this.form.submit()">
+                                <option value="todo" th:selected="${t.status == 'todo'}">待办</option>
+                                <option value="doing" th:selected="${t.status == 'doing'}">进行中</option>
+                                <option value="done" th:selected="${t.status == 'done'}">已完成</option>
+                            </select>
+                        </form>
+                    </div>
+                    <div class="empty" th:if="${col.value.isEmpty()}">这一列还没有任务</div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

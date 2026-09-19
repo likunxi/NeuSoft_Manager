@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2>角色权限</h2>
+                    <p>E1-02：权限码以服务端为准。左侧选角色，右侧勾选后保存。</p>
+                </div>
+            </div>
+            <form class="form-row" method="post" action="/roles">
+                <input class="field" name="name" placeholder="新角色名" required>
+                <input class="field" name="description" placeholder="说明（可选）">
+                <button class="btn">新建角色</button>
+            </form>
+            <div class="role-split">
+                <div class="card-box" style="padding:10px;">
+                    <a class="list-a" th:each="r : ${roles}"
+                       th:href="@{/roles(roleId=${r.id})}"
+                       th:classappend="${r.id == currentRoleId} ? ' on'">
+                        <div th:text="${r.roleName}">角色</div>
+                        <div class="muted" th:text="${r.isSystem == 1 ? '预置角色' : '自定义'}">类型</div>
+                    </a>
+                </div>
+                <form class="card-box" style="padding:16px;" th:action="@{|/roles/${currentRoleId}/permissions|}" method="post">
+                    <div th:each="entry : ${grouped}">
+                        <h3 style="margin:12px 0 6px;font-size:14px;" th:text="${entry.key}">史诗</h3>
+                        <label class="check" th:each="p : ${entry.value}">
+                            <input type="checkbox" name="permIds" th:value="${p.id}" th:checked="${checked.contains(p.permCode)}">
+                            <span>
+                                <span th:text="${p.permName}">权限</span>
+                                <span class="muted" th:text="${p.permCode}">code</span>
+                            </span>
+                        </label>
+                    </div>
+                    <button class="btn" style="margin-top:12px;">保存权限</button>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

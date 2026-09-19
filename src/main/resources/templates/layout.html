@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(content)">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${pageTitle} + ' · 爱管理'">爱管理</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.3/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<nav class="navbar navbar-dark app-nav">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/dashboard">爱管理 · Sprint 1</a>
+        <div class="d-flex align-items-center gap-3 text-white-50">
+            <span th:if="${me != null}" th:text="${me.displayName + ' / ' + me.roleName}">用户</span>
+            <a class="btn btn-sm btn-outline-light" href="/logout">退出</a>
+        </div>
+    </div>
+</nav>
+<div class="container-fluid">
+    <div class="row">
+        <aside class="col-md-2 app-side py-3">
+            <a href="/dashboard">总览</a>
+            <a href="/profile">我的权限</a>
+            <a href="/users" th:if="${me != null and me.has('user:manage')}">用户管理</a>
+            <a href="/roles" th:if="${me != null and me.has('role:manage')}">角色权限</a>
+            <a href="/projects" th:if="${me != null and me.has('project:view')}">项目任务</a>
+        </aside>
+        <main class="col-md-10 py-4" th:insert="${content}">
+        </main>
+    </div>
+</div>
+</body>
+</html>

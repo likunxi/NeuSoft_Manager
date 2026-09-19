@@ -1,0 +1,25 @@
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: 60m
+
+spring:
+  application:
+    name: aiguanli
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/aiguanli?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  thymeleaf:
+    cache: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+aiguanli:
+  sprint: 1
+  title: 爱管理 · Sprint 1

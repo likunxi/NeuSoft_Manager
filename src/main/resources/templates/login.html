@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>登录 · 爱管理</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="login-wrap">
+    <div class="login-card">
+        <div class="brand" style="padding-left:0;"><span class="brand-mark">爱</span>爱管理</div>
+        <h1>看见人 / 事 / 数</h1>
+        <p>Sprint 1 可视化原型 · 第22组</p>
+        <div class="alert" th:if="${error}" th:text="${error}"></div>
+        <form method="post" action="/login">
+            <label>用户名</label>
+            <input class="field" name="username" value="admin" autocomplete="username">
+            <label>密码</label>
+            <input class="field" type="password" name="password" value="admin123" autocomplete="current-password">
+            <button class="btn" type="submit">登录</button>
+        </form>
+        <div class="demos">
+            演示：admin / admin123　pm / pm123　member / member123<br>
+            22组：likx / zhangyl / lisb / qubq　密码 22team
+        </div>
+    </div>
+</div>
+</body>
+</html>

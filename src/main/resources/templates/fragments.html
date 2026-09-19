@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head">
+    <meta charset="UTF-8">
+    <title th:text="${pageTitle} + ' · 爱管理'">爱管理</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<aside th:fragment="side" class="side">
+    <div class="brand"><span class="brand-mark">爱</span>爱管理</div>
+    <a th:href="@{/dashboard}" th:classappend="${nav=='dashboard'} ? ' active'">总览</a>
+    <a th:href="@{/work}" th:classappend="${nav=='work'} ? ' active'">任务看板</a>
+    <a th:href="@{/my-tasks}" th:classappend="${nav=='mine'} ? ' active'">我的任务</a>
+    <a th:if="${homeProjectId != null and me != null and me.has('trend:view')}" th:href="@{|/projects/${homeProjectId}/trend|}" th:classappend="${nav=='trend'} ? ' active'">趋势</a>
+    <a th:if="${homeProjectId != null}" th:href="@{|/projects/${homeProjectId}/timeline|}" th:classappend="${nav=='timeline'} ? ' active'">时间轴</a>
+    <a th:href="@{/projects}" th:classappend="${nav=='projects'} ? ' active'">项目</a>
+    <a th:href="@{/account}" th:classappend="${nav=='account'} ? ' active'">账号设置</a>
+    <a th:href="@{/profile}" th:classappend="${nav=='profile'} ? ' active'">权限地图</a>
+    <a th:if="${me != null and me.has('user:manage')}" th:href="@{/users}" th:classappend="${nav=='users'} ? ' active'">用户管理</a>
+    <a th:if="${me != null and me.has('role:manage')}" th:href="@{/roles}" th:classappend="${nav=='roles'} ? ' active'">角色权限</a>
+    <div class="hint">任务看板按进阶 1/2/3 横排。甘特、UML、AI 只在时间轴留了入口。</div>
+</aside>
+<header th:fragment="top" class="top">
+    <div class="top-left">
+        <span>22组-爱管理</span>
+        <span class="chip">Sprint 1</span>
+    </div>
+    <form class="search" th:action="@{/search}" method="get">
+        <input name="q" placeholder="搜索任务标题或故事号 E1-01" th:value="${q}">
+        <button class="btn tiny ghost" type="submit">搜索</button>
+    </form>
+    <div>
+        <span class="who" th:if="${me != null}" th:text="${me.displayName + ' · ' + me.roleName}">用户</span>
+        <a class="btn-exit" href="/logout">退出</a>
+    </div>
+</header>
+</body>
+</html>

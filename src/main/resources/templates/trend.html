@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2 th:text="${project.name + ' · 进度趋势'}">趋势</h2>
+                    <p>图都是本地画的，不依赖外网。改一条任务为已完成再刷新，完成量柱子会动。</p>
+                </div>
+                <div class="card-actions">
+                    <a class="btn" th:classappend="${days == 7} ? '' : ' ghost'" th:href="@{|/projects/${project.id}/trend?days=7|}">近 7 日</a>
+                    <a class="btn" th:classappend="${days == 14} ? '' : ' ghost'" th:href="@{|/projects/${project.id}/trend?days=14|}">近 14 日</a>
+                    <a class="btn ghost" th:href="@{/work}">任务看板</a>
+                </div>
+            </div>
+            <div class="metrics">
+                <div class="metric"><span>总数</span><b th:text="${trend.total}">0</b></div>
+                <div class="metric"><span>待办</span><b th:text="${trend.todo}">0</b><span th:text="${trend.todoPct + '%'}">0%</span></div>
+                <div class="metric"><span>进行中</span><b th:text="${trend.doing}">0</b><span th:text="${trend.doingPct + '%'}">0%</span></div>
+                <div class="metric"><span>完成率</span><b th:text="${trend.completionRate + '%'}">0%</b><span th:text="${'已完成 ' + trend.done}">0</span></div>
+            </div>
+            <div class="viz-grid">
+                <div class="panel">
+                    <h3>状态构成</h3>
+                    <div class="donut-wrap">
+                        <div class="donut" th:style="|background: conic-gradient(#9ca3af 0deg ${trend.todoDeg}deg, #3b82f6 ${trend.todoDeg}deg ${trend.todoDeg + trend.doingDeg}deg, #10b981 ${trend.todoDeg + trend.doingDeg}deg 360deg)|"></div>
+                        <div class="donut-legend">
+                            <div><i class="dot todo"></i>待办 <b th:text="${trend.todoPct + '%'}">0%</b></div>
+                            <div><i class="dot doing"></i>进行中 <b th:text="${trend.doingPct + '%'}">0%</b></div>
+                            <div><i class="dot done"></i>已完成 <b th:text="${trend.donePct + '%'}">0%</b></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>阶段分布</h3>
+                    <div class="stage-bars">
+                        <div class="bar-row"><span>进阶1</span><div class="bar-track"><div class="bar-fill e1" th:style="|width:${trend.e1Pct}%|"></div></div><span th:text="${trend.e1}">0</span></div>
+                        <div class="bar-row"><span>进阶2</span><div class="bar-track"><div class="bar-fill e2" th:style="|width:${trend.e2Pct}%|"></div></div><span th:text="${trend.e2}">0</span></div>
+                        <div class="bar-row"><span>进阶3</span><div class="bar-track"><div class="bar-fill e3" th:style="|width:${trend.e3Pct}%|"></div></div><span th:text="${trend.e3}">0</span></div>
+                    </div>
+                    <p class="muted">按故事号前缀归列。现在种子几乎都在进阶1，后两列会在下两个 Sprint 涨起来。</p>
+                </div>
+                <div class="panel">
+                    <h3>完成环</h3>
+                    <div class="ring" th:style="|background: conic-gradient(#5b6cff 0deg ${trend.completionRate * 3.6}deg, #eef0f5 ${trend.completionRate * 3.6}deg 360deg)|">
+                        <div class="ring-hole"><b th:text="${trend.completionRate + '%'}">0%</b><span>完成率</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="bottom" style="grid-template-columns: 1fr 1fr; margin-top:12px;">
+                <div class="panel">
+                    <h3 th:text="${'近 ' + days + ' 日完成量'}">完成量</h3>
+                    <div class="week-chart" style="height:240px;" th:if="${trend.bars != null and !trend.bars.isEmpty()}">
+                        <div class="week-col" th:each="b : ${trend.bars}">
+                            <div class="week-val" th:text="${b.count}">0</div>
+                            <div class="week-bar-wrap">
+                                <div class="week-bar" th:style="|height:${b.height}px|" th:classappend="${b.count == 0} ? ' zero'"></div>
+                            </div>
+                            <span th:text="${b.label}">09-13</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>协作活跃（任意状态变更）</h3>
+                    <div class="week-chart" style="height:240px;" th:if="${trend.activityBars != null and !trend.activityBars.isEmpty()}">
+                        <div class="week-col" th:each="b : ${trend.activityBars}">
+                            <div class="week-val" th:text="${b.count}">0</div>
+                            <div class="week-bar-wrap">
+                                <div class="week-bar act" th:style="|height:${b.height}px|" th:classappend="${b.count == 0} ? ' zero'"></div>
+                            </div>
+                            <span th:text="${b.label}">09-13</span>
+                        </div>
+                    </div>
+                    <p class="muted" th:text="${'累计流转 ' + trend.activityTotal + ' 次'}">0</p>
+                </div>
+            </div>
+            <div class="panel" style="margin-top:12px;">
+                <h3>成员工作量（堆叠：待办 / 进行中 / 已完成）</h3>
+                <div th:if="${workloads != null}">
+                    <div class="wl-row" th:each="w : ${workloads}">
+                        <span class="wl-name" th:text="${w.name}">人</span>
+                        <div class="stack">
+                            <i class="todo" th:style="|width:${w.todoPct}%|"></i>
+                            <i class="doing" th:style="|width:${w.doingPct}%|"></i>
+                            <i class="done" th:style="|width:${w.donePct}%|"></i>
+                        </div>
+                        <span class="muted" th:text="${w.total + ' · 待办' + w.todo + ' / 进行中' + w.doing + ' / 完成' + w.done}">0</span>
+                    </div>
+                </div>
+                <div class="empty" th:if="${workloads == null}">工作量仅管理员可见。用 admin 登录看堆叠条。</div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>
