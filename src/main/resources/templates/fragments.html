@@ -18,12 +18,12 @@
     <a th:href="@{/profile}" th:classappend="${nav=='profile'} ? ' active'">权限地图</a>
     <a th:if="${me != null and me.has('user:manage')}" th:href="@{/users}" th:classappend="${nav=='users'} ? ' active'">用户管理</a>
     <a th:if="${me != null and me.has('role:manage')}" th:href="@{/roles}" th:classappend="${nav=='roles'} ? ' active'">角色权限</a>
-    <div class="hint">任务看板按进阶 1/2/3 横排。甘特、UML、AI 只在时间轴留了入口。</div>
+    <div class="hint">故事、甘特、成员图、UML 从项目卡片进入。右下角打开 AI 助手，只出建议，人确认后才写回。</div>
 </aside>
 <header th:fragment="top" class="top">
     <div class="top-left">
         <span>22组-爱管理</span>
-        <span class="chip">Sprint 1</span>
+        <span class="chip">Sprint 3</span>
     </div>
     <form class="search" th:action="@{/search}" method="get">
         <input name="q" placeholder="搜索任务标题或故事号 E1-01" th:value="${q}">
@@ -33,6 +33,50 @@
         <span class="who" th:if="${me != null}" th:text="${me.displayName + ' · ' + me.roleName}">用户</span>
         <a class="btn-exit" href="/logout">退出</a>
     </div>
+    <button th:if="${homeProjectId != null}" type="button" class="ai-fab" th:attr="data-ai-open=${homeProjectId}">AI 助手</button>
+    <div th:if="${homeProjectId != null}" id="ai-drawer" class="ai-drawer" hidden>
+        <div class="ai-drawer-bar">
+            <strong>AI 助手</strong>
+            <button type="button" class="btn ghost tiny" data-ai-close>关闭</button>
+        </div>
+        <iframe class="ai-drawer-frame" title="AI 助手"></iframe>
+    </div>
+    <script th:if="${homeProjectId != null}">
+        (function () {
+            function drawer() { return document.getElementById('ai-drawer'); }
+            function closeAi() {
+                var el = drawer();
+                if (!el) return;
+                el.hidden = true;
+                document.body.classList.remove('ai-open');
+            }
+            function openAi(projectId) {
+                var el = drawer();
+                if (!el || !projectId) return;
+                var frame = el.querySelector('iframe');
+                var next = '/projects/' + projectId + '/ai?panel=1';
+                if (!el.hidden && frame.getAttribute('src') === next) {
+                    closeAi();
+                    return;
+                }
+                if (frame.getAttribute('src') !== next) frame.setAttribute('src', next);
+                el.hidden = false;
+                document.body.classList.add('ai-open');
+            }
+            document.addEventListener('click', function (e) {
+                var opener = e.target.closest('[data-ai-open]');
+                if (opener) {
+                    e.preventDefault();
+                    openAi(opener.getAttribute('data-ai-open'));
+                    return;
+                }
+                if (e.target.closest('[data-ai-close]')) closeAi();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeAi();
+            });
+        })();
+    </script>
 </header>
 </body>
 </html>

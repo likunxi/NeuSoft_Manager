@@ -13,9 +13,9 @@
 
     <groupId>com.team22</groupId>
     <artifactId>aiguanli</artifactId>
-    <version>1.0.0-sprint1</version>
+    <version>1.0.0-sprint3</version>
     <name>爱管理</name>
-    <description>第22组 爱管理 Sprint 1 可视化原型</description>
+    <description>第22组 爱管理 Sprint 3 发布切片</description>
 
     <properties>
         <java.version>17</java.version>
@@ -53,6 +53,10 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
     </dependencies>
 

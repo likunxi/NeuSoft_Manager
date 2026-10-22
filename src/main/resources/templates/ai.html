@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div th:fragment="panel" class="ai-body">
+            <div class="page-h">
+                <div>
+                    <h2 th:text="${project.name + ' · AI 助手'}">AI 助手</h2>
+                    <p>项目经理先选择分析对象。报告只供阅读，不会改任务、甘特和人员。拆需求仍然要采纳后才写入。</p>
+                </div>
+                <div class="card-actions" th:unless="${panel}">
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/stories|}">故事看板</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/tasks|}">任务看板</a>
+                </div>
+            </div>
+            <div class="hint-box" th:if="${ok}" th:text="${ok}">结果</div>
+            <div class="hint-box" th:text="${llmReady ? '大模型已配置，生成建议会调用 ' + llmModel + '。人审通过后才写回。' : '还没有密钥。先保存下面的配置，再生成建议。'}">模型状态</div>
+            <div class="hint-box" th:if="${me != null and !me.has('task:create')}">当前账号不能提交拆解，也不能写回。请换项目经理账号。</div>
+
+            <nav class="ai-toc" aria-label="AI 助手目录">
+                <a th:if="${me != null and me.has('task:create')}" href="#ai-model">大模型</a>
+                <a th:if="${me != null and me.has('task:create')}" href="#ai-analyze">选择分析</a>
+                <a href="#ai-reports">分析报告</a>
+                <a th:if="${me != null and me.has('task:create')}" href="#ai-split">提交需求</a>
+                <a href="#ai-pending">待审建议</a>
+                <a href="#ai-risk">延期风险</a>
+                <a href="#ai-history">已审记录</a>
+            </nav>
+
+            <section class="card-box ai-anchor" id="ai-model" th:if="${me != null and me.has('task:create')}">
+                <h3>大模型</h3>
+                <p class="muted">接口要兼容 OpenAI 的 /chat/completions。DeepSeek 用 https://api.deepseek.com/v1 ，模型名 deepseek-chat。通义兼容模式把地址换成服务商给的 v1 地址。密钥留空表示沿用已保存的。</p>
+                <form method="post" th:action="@{|/projects/${project.id}/ai/llm|}">
+                    <input type="hidden" name="panel" value="1" th:if="${panel}">
+                    <div class="form-row">
+                        <input class="field" name="baseUrl" th:value="${llmBaseUrl}" placeholder="https://api.deepseek.com/v1" required>
+                        <input class="field" name="modelName" th:value="${llmModel}" placeholder="deepseek-chat" required>
+                        <input class="field" name="apiKey" type="password" placeholder="密钥，已保存可留空" autocomplete="off">
+                        <button class="btn ghost" type="submit">保存配置</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="card-box ai-anchor" id="ai-analyze" th:if="${me != null and me.has('task:create')}">
+                <h3>选择分析对象</h3>
+                <p class="muted">按当前项目里的真实数据进行分析。任务看板看各进阶进度，甘特图看工期和依赖，人员看谁的任务堆在一起，风险测评看截止日期。</p>
+                <form method="post" th:action="@{|/projects/${project.id}/ai/analyze|}">
+                    <input type="hidden" name="panel" value="1" th:if="${panel}">
+                    <div class="form-row">
+                        <select class="field" name="target" required>
+                            <option value="board">任务看板</option>
+                            <option value="gantt">甘特图</option>
+                            <option value="member">人员</option>
+                            <option value="risk">风险测评</option>
+                        </select>
+                        <input class="field" name="note" placeholder="想重点看什么，可以不填">
+                        <button class="btn" type="submit">开始分析</button>
+                    </div>
+                </form>
+            </section>
+
+            <h3 class="ai-anchor" id="ai-reports">分析报告</h3>
+            <div class="empty" th:if="${reports.isEmpty()}">还没有分析报告</div>
+            <article class="sug-card fold" th:each="r, stat : ${reports}">
+                <details th:open="${stat.first}">
+                    <summary>
+                        <span class="sum-main">
+                            <b th:text="${r.targetLabel + '分析'}">分析</b>
+                            <span th:text="${r.createdAt}">时间</span>
+                        </span>
+                        <span class="chip" th:if="${stat.first}">最新</span>
+                    </summary>
+                    <div class="fold-body report" th:text="${r.report}">报告</div>
+                </details>
+            </article>
+
+            <section class="card-box ai-anchor" id="ai-split" th:if="${me != null and me.has('task:create')}">
+                <h3>提交需求</h3>
+                <form method="post" th:action="@{|/projects/${project.id}/ai/split|}">
+                    <input type="hidden" name="panel" value="1" th:if="${panel}">
+                    <div class="form-row">
+                        <input class="field" name="title" placeholder="标题，可以不填">
+                    </div>
+                    <textarea class="field area" name="content" required placeholder="一行写一条，或用句号分开。例如：项目经理可以提交需求。成员不能直接改排期。"></textarea>
+                    <div class="form-row">
+                        <button class="btn" type="submit">生成建议</button>
+                    </div>
+                </form>
+            </section>
+
+            <h3 class="ai-anchor" id="ai-pending">待人审的建议</h3>
+            <div class="empty" th:if="${pending.isEmpty()}">还没有待审建议</div>
+            <article class="sug-card fold" th:each="s, stat : ${pending}">
+                <details th:open="${stat.first}">
+                    <summary>
+                        <span class="sum-main">
+                            <b th:text="${'建议 #' + s.id}">建议</b>
+                            <span th:text="${s.digest}">摘要</span>
+                        </span>
+                        <span class="chip" th:if="${stat.first}">最新</span>
+                    </summary>
+                    <div class="fold-body">
+                        <form method="post" th:action="@{|/projects/${project.id}/ai/suggestions/${s.id}/review|}"
+                              th:if="${me != null and me.has('task:create')}">
+                            <input type="hidden" name="panel" value="1" th:if="${panel}">
+                            <p class="muted">勾上写入，在右边改成你自己的话，再点确定。没勾的不会进入故事和任务。</p>
+                            <div class="pick-row" th:each="item, itemStat : ${s.items}">
+                                <label class="pick"><input type="checkbox" name="picked" th:value="${itemStat.index}" checked> 写入</label>
+                                <input class="field idea" name="titles" th:value="${item.title}" placeholder="标题">
+                                <textarea class="field idea" name="wants" placeholder="在这里改成你自己的想法" th:text="${item.iWant}"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <button class="btn" type="submit" name="decision" value="accept">确定</button>
+                                <button class="btn ghost" type="submit" name="decision" value="reject">全部不写入</button>
+                            </div>
+                        </form>
+                        <div th:if="${me == null or !me.has('task:create')}">
+                            <p th:each="item : ${s.items}" th:text="${item.title + ' / ' + item.iWant}">建议</p>
+                        </div>
+                    </div>
+                </details>
+            </article>
+
+            <h3 class="ai-anchor" id="ai-risk">延期风险</h3>
+            <form method="post" th:action="@{|/projects/${project.id}/ai/risks|}" th:if="${me != null and me.has('task:create')}">
+                <input type="hidden" name="panel" value="1" th:if="${panel}">
+                <button class="btn ghost" type="submit">按截止日期刷新预警</button>
+            </form>
+            <div class="empty" th:if="${alerts.isEmpty()}">还没有打开的预警</div>
+            <article class="sug-card fold" th:each="a, stat : ${alerts}">
+                <details th:open="${stat.first}">
+                    <summary>
+                        <span class="sum-main">
+                            <b th:classappend="${a.riskLevel == 'high'} ? 'risk-high' : 'risk-medium'"
+                               th:text="${a.riskLevel == 'high'} ? '高' : '中'">级别</b>
+                            <span th:text="${a.createdAt}">时间</span>
+                        </span>
+                        <span class="chip" th:if="${stat.first}">最新</span>
+                    </summary>
+                    <div class="fold-body" th:text="${a.message}">说明</div>
+                </details>
+            </article>
+
+            <h3 class="ai-anchor" id="ai-history">已审记录</h3>
+            <div class="empty" th:if="${history.isEmpty()}">还没有审过的建议</div>
+            <article class="sug-card fold" th:each="s, stat : ${history}">
+                <details th:open="${stat.first}">
+                    <summary>
+                        <span class="sum-main">
+                            <b th:text="${s.decision == 'accept'} ? '采纳' : (${s.decision == 'modify'} ? '修改' : '拒绝')">处置</b>
+                            <span th:text="${s.createdAt}">时间</span>
+                        </span>
+                        <span class="chip" th:if="${stat.first}">最新</span>
+                    </summary>
+                    <div class="fold-body">
+                        <p class="muted" th:text="${s.comment}">理由</p>
+                        <p>
+                            <span th:each="item, itemStat : ${s.items}"
+                                  th:text="${item.title + (itemStat.last ? '' : '；')}"></span>
+                        </p>
+                    </div>
+                </details>
+            </article>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

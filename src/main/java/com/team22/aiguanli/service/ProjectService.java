@@ -29,13 +29,18 @@ public class ProjectService {
     private final PmTaskMapper taskMapper;
     private final PmTaskStatusLogMapper logMapper;
     private final SysUserMapper userMapper;
+    private final ViewSyncService viewSyncService;
+    private final TaskRemovalService taskRemovalService;
 
     public ProjectService(PmProjectMapper projectMapper, PmTaskMapper taskMapper,
-                          PmTaskStatusLogMapper logMapper, SysUserMapper userMapper) {
+                          PmTaskStatusLogMapper logMapper, SysUserMapper userMapper,
+                          ViewSyncService viewSyncService, TaskRemovalService taskRemovalService) {
         this.projectMapper = projectMapper;
         this.taskMapper = taskMapper;
         this.logMapper = logMapper;
         this.userMapper = userMapper;
+        this.viewSyncService = viewSyncService;
+        this.taskRemovalService = taskRemovalService;
     }
 
     public List<PmProject> listProjects() {
@@ -95,6 +100,10 @@ public class ProjectService {
         task.setProgress(0);
         task.setCreatedAt(LocalDateTime.now());
         task.setUpdatedAt(LocalDateTime.now());
+        taskMapper.insert(task);
+    }
+
+    public void insertTask(PmTask task) {
         taskMapper.insert(task);
     }
 
@@ -170,6 +179,20 @@ public class ProjectService {
     }
 
     /**
+     * 把任务拖到另一个进阶。编号接着该进阶已有任务往后排，原进阶剩下的号重新连上。
+     */
+    @Transactional
+    public void moveStage(Long taskId, String stage, LoginUser user) {
+        if (user == null || !user.has("task:update_any")) {
+            throw new BizException(403, "没有权限把任务拖到别的进阶");
+        }
+        if (!"e1".equals(stage) && !"e2".equals(stage) && !"e3".equals(stage)) {
+            throw new BizException(400, "进阶只允许 e1 / e2 / e3");
+        }
+        taskRemovalService.placeInStage(mustGet(taskId), stage);
+    }
+
+    /**
      * 改状态：校验枚举和权限，维护 done_at，并写状态日志供趋势使用。
      */
     @Transactional
@@ -182,8 +205,23 @@ public class ProjectService {
             throw new BizException(403, "只能更新自己负责的任务");
         }
         String from = task.getStatus();
-        if (from.equals(toStatus)) {
-            return;
+        if (applyStatus(task, toStatus, user, "页面操作")) {
+            viewSyncService.onTaskStatusChanged(task, from, toStatus, user);
+        }
+    }
+
+    /**
+     * 写入任务状态和状态日志。返回 false 表示状态没有变化。
+     * 故事联动走这里，不再做一次“只能改自己的任务”校验。
+     */
+    @Transactional
+    public boolean applyStatus(PmTask task, String toStatus, LoginUser user, String remark) {
+        if (!TaskStatusRules.isAllowedStatus(toStatus)) {
+            throw new BizException(400, "状态只允许 todo / doing / done");
+        }
+        String from = task.getStatus();
+        if (from != null && from.equals(toStatus)) {
+            return false;
         }
         task.setStatus(toStatus);
         task.setUpdatedAt(LocalDateTime.now());
@@ -204,9 +242,10 @@ public class ProjectService {
         log.setFromStatus(from);
         log.setToStatus(toStatus);
         log.setOperatorId(user.getId());
-        log.setRemark("页面操作");
+        log.setRemark(remark);
         log.setCreatedAt(LocalDateTime.now());
         logMapper.insert(log);
+        return true;
     }
 
     public List<PmTaskStatusLog> timeline(Long projectId) {

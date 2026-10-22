@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2 th:text="${project.name + ' · 甘特图'}">甘特图</h2>
+                    <p th:text="${'共 ' + taskCount + ' 条，按进阶分组。任务看板上把卡片拖到别的进阶后，回到这里，这条任务会进对应分组。色条仍按开始日到截止日画，深色是实际进度。'}">说明</p>
+                </div>
+                <div class="card-actions">
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/stories|}">故事看板</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/tasks|}">任务看板</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/links|}">联动</a>
+                </div>
+            </div>
+            <div class="legend">
+                <span><i class="dot todo"></i>待办</span>
+                <span><i class="dot doing"></i>进行中</span>
+                <span><i class="dot done"></i>已完成</span>
+                <span class="muted">浅色是计划工期，深色是已完成比例</span>
+                <span class="muted" th:if="${!bars.isEmpty()}" th:text="${rangeStart + ' → ' + rangeEnd}">日期范围</span>
+                <span class="muted" th:if="${todayPct != null}">橙色列是今天</span>
+            </div>
+            <div id="gantt" class="gantt-board" th:attr="data-bar-count=${taskCount}" th:style="${'--span:' + days.size()}">
+                <div class="empty" th:if="${bars.isEmpty()}">这个项目还没有任务</div>
+                <div class="gantt-head" th:if="${!bars.isEmpty()}">
+                    <div class="gantt-sidehead">任务 / 进度</div>
+                    <div class="gantt-timehead">
+                        <div class="gantt-days">
+                            <div th:each="d : ${days}" th:classappend="${d.today} ? 'today'">
+                                <b th:text="${d.md}">10/15</b>
+                                <span th:text="${d.today ? '今天' : d.week}">六</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <section class="gantt-group" th:each="g : ${groups}" th:classappend="${g.key}">
+                    <div class="gantt-epic" th:text="${g.label}">阶段</div>
+                    <div class="gantt-row" th:each="bar : ${g.bars}">
+                        <div class="gantt-name">
+                            <div class="gantt-title">
+                                <span class="tag" th:if="${!bar.storyCode.isEmpty()}" th:text="${bar.storyCode}">E1-01</span>
+                                <span th:text="${bar.title}">任务</span>
+                            </div>
+                            <div class="gantt-meta">
+                                <span class="pill" th:classappend="${bar.status}" th:text="${bar.status == 'todo' ? '待办' : (bar.status == 'doing' ? '进行中' : (bar.status == 'done' ? '已完成' : bar.status))}">状态</span>
+                                <b th:text="${bar.progress + '%'}">0%</b>
+                                <span class="muted" th:text="${bar.startLabel + ' → ' + bar.dueLabel}">日期</span>
+                            </div>
+                            <div class="muted" th:text="${bar.assigneeId != null and userNames.get(bar.assigneeId) != null ? userNames.get(bar.assigneeId) : '未指派'}">负责人</div>
+                        </div>
+                        <div class="gantt-lane">
+                            <div class="gantt-cols">
+                                <i th:each="d : ${days}" th:classappend="${d.today} ? 'today'"></i>
+                            </div>
+                            <div class="gantt-bar"
+                                 th:classappend="${bar.status}"
+                                 th:attr="data-task-id=${bar.taskId},data-status=${bar.status},data-progress=${bar.progress}"
+                                 th:title="${bar.title + ' · 进度 ' + bar.progress + '% · ' + bar.startLabel + ' → ' + bar.dueLabel}"
+                                 th:style="|left:${bar.leftPct}%;width:${bar.widthPct}%;|">
+                                <i class="gantt-fill" th:style="|width:${bar.progress}%;|"></i>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <div class="panel" style="margin-top:12px" th:if="${dependencies != null and !dependencies.isEmpty()}">
+                <h3>任务依赖</h3>
+                <p th:each="line : ${dependencies}" th:text="${line}">依赖</p>
+            </div>
+            <div class="panel" style="margin-top:12px">
+                <h3>需求变更同步</h3>
+                <p class="muted" th:if="${syncEvents == null or syncEvents.isEmpty()}">打开联动里的故事 → 甘特后，在故事看板上改状态，这里会记下同步了几条任务。</p>
+                <p th:each="e : ${syncEvents}"><span class="muted" th:text="${e.createdAt}"></span> <span th:text="${e.summary}">记录</span></p>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

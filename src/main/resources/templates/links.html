@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2 th:text="${project.name + ' · 联动规则'}">联动规则</h2>
+                    <p>开关关掉时，改故事或改任务状态只影响自己那一页。打开后才会同步到甘特或成员图。</p>
+                </div>
+                <div class="card-actions">
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/stories|}">故事看板</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/gantt|}">甘特图</a>
+                    <a class="btn ghost" th:if="${me.has('board:view')}" th:href="@{|/projects/${project.id}/members|}">成员图</a>
+                </div>
+            </div>
+            <div class="hint-box" th:if="${ok}" th:text="${ok}">成功</div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr><th>来源</th><th>目标</th><th>事件</th><th>效果</th><th>状态</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="rule : ${rules}">
+                        <td th:text="${rule.sourceView}">来源</td>
+                        <td th:text="${rule.targetView}">目标</td>
+                        <td th:text="${rule.eventType}">事件</td>
+                        <td th:text="${T(com.team22.aiguanli.service.LinkRuleService).explain(rule)}">说明</td>
+                        <td>
+                            <span class="pill" th:classappend="${rule.isEnabled == 1 ? 'done' : 'todo'}"
+                                  th:text="${rule.isEnabled == 1 ? '开' : '关'}">关</span>
+                        </td>
+                        <td>
+                            <form method="post" th:if="${me.has('project:create')}" th:action="@{|/projects/${project.id}/links/${rule.id}|}">
+                                <input type="hidden" name="enabled" th:value="${rule.isEnabled == 1 ? 0 : 1}">
+                                <button class="btn tiny" type="submit" th:text="${rule.isEnabled == 1 ? '关闭' : '打开'}">打开</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="empty" th:if="${rules.isEmpty()}">这个项目还没有联动规则</div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

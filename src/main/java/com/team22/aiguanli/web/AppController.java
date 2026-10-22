@@ -9,10 +9,19 @@ import com.team22.aiguanli.entity.SysUser;
 import com.team22.aiguanli.mapper.SysUserMapper;
 import com.team22.aiguanli.security.LoginUser;
 import com.team22.aiguanli.security.RequirePerm;
+import com.team22.aiguanli.service.AiAssistService;
 import com.team22.aiguanli.service.AuthService;
+import com.team22.aiguanli.service.GanttService;
+import com.team22.aiguanli.service.LinkRuleService;
+import com.team22.aiguanli.service.LlmSettings;
+import com.team22.aiguanli.service.MemberMapService;
 import com.team22.aiguanli.service.ProjectService;
+import com.team22.aiguanli.service.StoryBoardService;
+import com.team22.aiguanli.service.UmlService;
+import com.team22.aiguanli.service.ViewSyncService;
 import com.team22.aiguanli.service.RoleAdminService;
 import com.team22.aiguanli.service.StatsService;
+import com.team22.aiguanli.service.TaskRemovalService;
 import com.team22.aiguanli.service.TaskStages;
 import com.team22.aiguanli.service.UserAdminService;
 import jakarta.servlet.http.HttpSession;
@@ -41,19 +50,46 @@ public class AppController {
     private final ProjectService projectService;
     private final StatsService statsService;
     private final AuthService authService;
+    private final GanttService ganttService;
+    private final StoryBoardService storyBoardService;
+    private final MemberMapService memberMapService;
+    private final UmlService umlService;
+    private final LinkRuleService linkRuleService;
+    private final ViewSyncService viewSyncService;
+    private final AiAssistService aiAssistService;
+    private final LlmSettings llmSettings;
+    private final TaskRemovalService taskRemovalService;
 
     public AppController(SysUserMapper userMapper,
                          UserAdminService userAdminService,
                          RoleAdminService roleAdminService,
                          ProjectService projectService,
                          StatsService statsService,
-                         AuthService authService) {
+                         AuthService authService,
+                         GanttService ganttService,
+                         StoryBoardService storyBoardService,
+                         MemberMapService memberMapService,
+                         UmlService umlService,
+                         LinkRuleService linkRuleService,
+                         ViewSyncService viewSyncService,
+                         AiAssistService aiAssistService,
+                         LlmSettings llmSettings,
+                         TaskRemovalService taskRemovalService) {
         this.userMapper = userMapper;
         this.userAdminService = userAdminService;
         this.roleAdminService = roleAdminService;
         this.projectService = projectService;
         this.statsService = statsService;
         this.authService = authService;
+        this.ganttService = ganttService;
+        this.storyBoardService = storyBoardService;
+        this.memberMapService = memberMapService;
+        this.umlService = umlService;
+        this.linkRuleService = linkRuleService;
+        this.viewSyncService = viewSyncService;
+        this.aiAssistService = aiAssistService;
+        this.llmSettings = llmSettings;
+        this.taskRemovalService = taskRemovalService;
     }
 
     @GetMapping("/dashboard")
@@ -342,6 +378,30 @@ public class AppController {
         return backTo(back, projectId, q);
     }
 
+    @PostMapping("/tasks/{id}/stage")
+    @RequirePerm("task:update_any")
+    public String moveStage(@PathVariable Long id,
+                            @RequestParam String stage,
+                            LoginUser me,
+                            RedirectAttributes ra) {
+        projectService.moveStage(id, stage, me);
+        ra.addFlashAttribute("ok", "已拖到「" + TaskStages.label(stage) + "」。这条任务排在该进阶最后一个号，原来那一列后面的号已重新连上。甘特图按同一个进阶分组。");
+        return "redirect:/work";
+    }
+
+    @PostMapping("/tasks/{id}/delete")
+    @RequirePerm("task:update_any")
+    public String deleteTask(@PathVariable Long id,
+                             @RequestParam Long projectId,
+                             @RequestParam(defaultValue = "work") String back,
+                             @RequestParam(required = false) String q,
+                             LoginUser me,
+                             RedirectAttributes ra) {
+        String title = taskRemovalService.remove(id, me);
+        ra.addFlashAttribute("ok", "已删除「" + title + "」。同一进阶的故事号已重新连号，甘特图、成员图、趋势和时序会按剩下的任务重算。");
+        return backTo(back, projectId, q);
+    }
+
     @PostMapping("/tasks/{id}/status")
     public String changeStatus(@PathVariable Long id,
                                @RequestParam String status,
@@ -383,10 +443,212 @@ public class AppController {
         return "timeline";
     }
 
+    @GetMapping("/projects/{id}/gantt")
+    @RequirePerm("board:view")
+    public String gantt(@PathVariable Long id, Model model) {
+        GanttService.View gantt = ganttService.view(id);
+        model.addAttribute("pageTitle", "甘特图");
+        model.addAttribute("nav", "gantt");
+        model.addAttribute("project", gantt.project);
+        model.addAttribute("bars", gantt.bars);
+        model.addAttribute("groups", gantt.groups);
+        model.addAttribute("days", gantt.days);
+        model.addAttribute("todayPct", gantt.todayPct);
+        model.addAttribute("rangeStart", gantt.rangeStart);
+        model.addAttribute("rangeEnd", gantt.rangeEnd);
+        model.addAttribute("taskCount", gantt.taskCount);
+        model.addAttribute("userNames", nameMap());
+        model.addAttribute("dependencies", ganttService.dependencyLines(id));
+        model.addAttribute("syncEvents", viewSyncService.recent(id, ViewSyncService.STORY_CHANGED, 8));
+        return "gantt";
+    }
+
+    @GetMapping("/projects/{id}/stories")
+    @RequirePerm("board:view")
+    public String stories(@PathVariable Long id, Model model) {
+        StoryBoardService.Board board = storyBoardService.board(id);
+        model.addAttribute("pageTitle", "故事看板");
+        model.addAttribute("nav", "stories");
+        model.addAttribute("project", projectService.getProject(id));
+        model.addAttribute("columns", board.columns);
+        model.addAttribute("storyCount", board.total);
+        return "stories";
+    }
+
+    @PostMapping("/projects/{id}/stories/{storyId}/status")
+    @RequirePerm("board:view")
+    public String storyStatus(@PathVariable Long id,
+                              @PathVariable Long storyId,
+                              @RequestParam String status,
+                              LoginUser me,
+                              RedirectAttributes ra) {
+        storyBoardService.changeStatus(id, storyId, status, me);
+        ra.addFlashAttribute("ok", "故事状态已保存");
+        return "redirect:/projects/" + id + "/stories";
+    }
+
+    @GetMapping("/projects/{id}/members")
+    @RequirePerm("board:view")
+    public String members(@PathVariable Long id, Model model) {
+        model.addAttribute("pageTitle", "成员任务图");
+        model.addAttribute("nav", "members");
+        model.addAttribute("project", projectService.getProject(id));
+        model.addAttribute("columns", memberMapService.columns(id));
+        model.addAttribute("syncEvents", viewSyncService.recent(id, ViewSyncService.TASK_STATUS_CHANGED, 8));
+        return "members";
+    }
+
+    @GetMapping("/projects/{id}/uml")
+    @RequirePerm("board:view")
+    public String uml(@PathVariable Long id, Model model) {
+        model.addAttribute("pageTitle", "UML");
+        model.addAttribute("nav", "uml");
+        model.addAttribute("project", projectService.getProject(id));
+        model.addAttribute("diagram", umlService.diagram(id));
+        return "uml";
+    }
+
+    @PostMapping("/projects/{id}/uml")
+    @RequirePerm("board:view")
+    public String saveUml(@PathVariable Long id, LoginUser me, RedirectAttributes ra) {
+        umlService.save(id, me.getId());
+        ra.addFlashAttribute("ok", "已把当前 UML 写入快照");
+        return "redirect:/projects/" + id + "/uml";
+    }
+
+    @GetMapping("/projects/{id}/links")
+    @RequirePerm("project:view")
+    public String links(@PathVariable Long id, Model model) {
+        model.addAttribute("pageTitle", "联动规则");
+        model.addAttribute("nav", "links");
+        model.addAttribute("project", projectService.getProject(id));
+        model.addAttribute("rules", linkRuleService.list(id));
+        return "links";
+    }
+
+    @PostMapping("/projects/{id}/links/{ruleId}")
+    @RequirePerm("project:create")
+    public String toggleLink(@PathVariable Long id,
+                             @PathVariable Long ruleId,
+                             @RequestParam int enabled,
+                             RedirectAttributes ra) {
+        linkRuleService.toggle(id, ruleId, enabled == 1);
+        ra.addFlashAttribute("ok", enabled == 1 ? "已打开联动" : "已关闭联动");
+        return "redirect:/projects/" + id + "/links";
+    }
+
+    @GetMapping("/projects/{id}/ai")
+    public String ai(@PathVariable Long id,
+                     @RequestParam(defaultValue = "0") int panel,
+                     Model model) {
+        PmProject project = projectService.getProject(id);
+        model.addAttribute("pageTitle", "AI 助手");
+        model.addAttribute("nav", "ai");
+        model.addAttribute("project", project);
+        model.addAttribute("pending", aiAssistService.pending(id));
+        model.addAttribute("reports", aiAssistService.reports(id));
+        model.addAttribute("history", aiAssistService.history(id));
+        model.addAttribute("alerts", aiAssistService.openAlerts(id));
+        LlmSettings.Snapshot llm = llmSettings.snapshot();
+        model.addAttribute("llmBaseUrl", llm.baseUrl());
+        model.addAttribute("llmModel", llm.model());
+        model.addAttribute("llmReady", llmSettings.ready());
+        model.addAttribute("panel", panel == 1);
+        return panel == 1 ? "ai-panel" : "ai";
+    }
+
+    @PostMapping("/projects/{id}/ai/llm")
+    @RequirePerm("task:create")
+    public String saveLlm(@PathVariable Long id,
+                          @RequestParam String baseUrl,
+                          @RequestParam String modelName,
+                          @RequestParam(required = false) String apiKey,
+                          @RequestParam(required = false) Integer panel,
+                          RedirectAttributes ra) {
+        llmSettings.save(baseUrl, modelName, apiKey);
+        ra.addFlashAttribute("ok", "大模型配置已保存。生成建议时会调用这个模型。");
+        return aiBack(id, panel);
+    }
+
+    @PostMapping("/projects/{id}/ai/analyze")
+    @RequirePerm("task:create")
+    public String analyzeProject(@PathVariable Long id,
+                                 @RequestParam String target,
+                                 @RequestParam(required = false) String note,
+                                 @RequestParam(required = false) Integer panel,
+                                 LoginUser me,
+                                 RedirectAttributes ra) {
+        String label = aiAssistService.analyze(id, target, note, me);
+        ra.addFlashAttribute("ok", "已生成" + label + "分析。报告只供阅读，任务、甘特和人员都没有被修改。");
+        return aiBack(id, panel);
+    }
+
+    @PostMapping("/projects/{id}/ai/split")
+    @RequirePerm("task:create")
+    public String splitRequirement(@PathVariable Long id,
+                                   @RequestParam(required = false) String title,
+                                   @RequestParam String content,
+                                   @RequestParam(required = false) Integer panel,
+                                   LoginUser me,
+                                   RedirectAttributes ra) {
+        aiAssistService.propose(id, title, content, me);
+        ra.addFlashAttribute("ok", "已生成拆解建议。故事和任务还没变，等人审。");
+        return aiBack(id, panel);
+    }
+
+    @PostMapping("/projects/{id}/ai/suggestions/{suggestionId}/review")
+    @RequirePerm("task:create")
+    public String reviewSuggestion(@PathVariable Long id,
+                                   @PathVariable Long suggestionId,
+                                   @RequestParam String decision,
+                                   @RequestParam(required = false) String comment,
+                                   @RequestParam(required = false) List<String> titles,
+                                   @RequestParam(required = false) List<String> wants,
+                                   @RequestParam(required = false) List<Integer> picked,
+                                   @RequestParam(required = false) Integer panel,
+                                   LoginUser me,
+                                   RedirectAttributes ra) {
+        if (comment == null || comment.isBlank()) {
+            comment = "reject".equals(decision) ? "全部不写入" : "按勾选确认写入";
+        }
+        AiAssistService.ReviewResult result = aiAssistService.review(
+                id, suggestionId, decision, comment, titles, wants, picked, me);
+        ra.addFlashAttribute("ok", result.getMessage());
+        return aiBack(id, panel);
+    }
+
+    @PostMapping("/projects/{id}/ai/risks")
+    @RequirePerm("task:create")
+    public String refreshRisks(@PathVariable Long id,
+                               @RequestParam(required = false) Integer panel,
+                               LoginUser me,
+                               RedirectAttributes ra) {
+        int added = aiAssistService.refreshRisks(id, me);
+        ra.addFlashAttribute("ok", added == 0 ? "没有新的延期风险。" : "已记录 " + added + " 条延期风险。");
+        return aiBack(id, panel);
+    }
+
+    private String aiBack(Long id, Integer panel) {
+        if (panel != null && panel == 1) {
+            return "redirect:/projects/" + id + "/ai?panel=1";
+        }
+        return "redirect:/projects/" + id + "/ai";
+    }
+
     @GetMapping("/coming/{page}")
     public String coming(@PathVariable String page,
                          @RequestParam(required = false) Long projectId,
                          Model model) {
+        if ("ai".equals(page)) {
+            Long pid = projectId;
+            if (pid == null) {
+                List<PmProject> projects = projectService.listProjects();
+                pid = projects.isEmpty() ? null : projects.get(0).getId();
+            }
+            if (pid != null) {
+                return "redirect:/projects/" + pid + "/ai";
+            }
+        }
         String title;
         String sprint;
         String summary;
@@ -409,7 +671,7 @@ public class AppController {
             case "ai" -> {
                 title = "AI 助手";
                 sprint = "Sprint 3 · AI化";
-                summary = "拆解、预测、预警都走这里。本轮只留对话框位置。";
+                summary = "没有项目时无法打开拆解页。";
             }
             default -> {
                 title = "后续能力";

@@ -9,3 +9,4 @@ target/
 application-local.yml
 *.log
 .DS_Store
+data/llm.properties

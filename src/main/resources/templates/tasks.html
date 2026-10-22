@@ -69,6 +69,13 @@
                                 </select>
                                 <button class="btn tiny">更新</button>
                             </form>
+                            <form th:action="@{|/tasks/${t.id}/delete|}" method="post" style="margin-top:6px;"
+                                  th:if="${me.has('task:update_any')}"
+                                  onsubmit="return confirm('删除后，甘特图、成员图和趋势里也会去掉这条。确定删除？');">
+                                <input type="hidden" name="projectId" th:value="${project.id}">
+                                <input type="hidden" name="back" value="tasks">
+                                <button class="btn tiny ghost" type="submit">删除</button>
+                            </form>
                         </td>
                     </tr>
                     </tbody>
