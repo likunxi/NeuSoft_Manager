@@ -1,7 +1,7 @@
 package com.team22.aiguanli.service;
 
 /**
- * 爱管理三阶：横向分列用。E2/E3 列先留空，避免后两个 Sprint 任务和本轮混在一起。
+ * 爱管理三阶：故事号 E1 / E2 / E3 分别进三列。进阶 3 仍留空。
  */
 public final class TaskStages {
 
@@ -32,7 +32,7 @@ public final class TaskStages {
 
     public static String hint(String stage) {
         return switch (stage) {
-            case "e2" -> "甘特 / 故事地图 / UML，Sprint 2 再往这里放任务。";
+            case "e2" -> "Sprint 2：故事看板、甘特、成员图、UML 和联动。";
             case "e3" -> "智能拆解 / 预测 / 预警，Sprint 3 再往这里放任务。";
             default -> "本轮 Sprint 1 Must 都在这一列。";
         };

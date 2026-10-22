@@ -164,8 +164,46 @@ th, td { padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: le
 .stack i.done { background: var(--green); }
 .coming-canvas { background: #fff; border: 1px dashed #c7cbe0; border-radius: 14px; padding: 18px; min-height: 280px; }
 .gantt-row { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: center; margin-bottom: 12px; }
-.gantt-lane { height: 22px; background: #f3f4f8; border-radius: 8px; }
+.gantt-lane { height: 22px; background: #f3f4f8; border-radius: 8px; position: relative; }
 .gantt-ghost { height: 100%; background: #c7cffc; border-radius: 8px; }
+.gantt-board { --span: 7; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 0 0 8px; overflow-x: auto; }
+.gantt-head, .gantt-board .gantt-row { display: grid; grid-template-columns: 360px minmax(calc(var(--span) * 76px), 1fr); gap: 0; align-items: stretch; margin: 0; }
+.gantt-sidehead, .gantt-board .gantt-name { position: sticky; left: 0; z-index: 4; background: #fff; padding: 12px 16px; }
+.gantt-sidehead { color: var(--muted); font-size: 12px; display: flex; align-items: flex-end; border-bottom: 1px solid var(--line); }
+.gantt-timehead { min-width: calc(var(--span) * 76px); border-bottom: 1px solid var(--line); }
+.gantt-days, .gantt-cols { display: grid; grid-template-columns: repeat(var(--span), minmax(76px, 1fr)); height: 100%; }
+.gantt-days div { text-align: center; padding: 10px 0; color: var(--muted); font-size: 12px; border-left: 1px solid #e5e7eb; }
+.gantt-days b { display: block; color: var(--text); font-size: 14px; font-weight: 700; }
+.gantt-days div.today { background: #fff7ed; }
+.gantt-days div.today b, .gantt-days div.today span { color: #c2410c; }
+.gantt-epic { padding: 8px 16px; font-size: 12px; font-weight: 700; color: #4b5563; background: #f8fafc; border-top: 1px solid var(--line); }
+.gantt-board .gantt-name { border-right: 1px solid var(--line); border-bottom: 1px solid #f3f4f6; min-width: 0; }
+.gantt-title { font-size: 14px; font-weight: 600; line-height: 1.4; }
+.gantt-title .tag { margin-right: 6px; }
+.gantt-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.gantt-meta b { font-size: 13px; }
+.gantt-board .gantt-lane { height: auto; min-height: 72px; background: #fff; border-radius: 0; border-bottom: 1px solid #e5e7eb; min-width: calc(var(--span) * 76px); }
+.gantt-cols { position: absolute; inset: 0; }
+.gantt-cols i { border-left: 1px solid #e5e7eb; }
+.gantt-cols i.today { background: #fff7ed; }
+.gantt-today { position: absolute; top: 0; bottom: 0; width: 2px; background: #f59e0b; z-index: 2; pointer-events: none; }
+.gantt-axis { display: grid; grid-template-columns: minmax(160px, 240px) 1fr; gap: 10px; margin-bottom: 8px; font-size: 12px; }
+.gantt-scale { display: flex; justify-content: space-between; color: var(--muted); }
+.gantt-bar { height: 100%; border-radius: 8px; background: #9ca3af; }
+.gantt-board .gantt-bar { position: absolute; top: 50%; height: 22px; margin-top: -11px; border-radius: 6px; overflow: hidden; z-index: 1; box-sizing: border-box; }
+.gantt-fill { position: absolute; left: 0; top: 0; bottom: 0; }
+.gantt-bar-text { position: relative; z-index: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gantt-board .gantt-bar.todo { background: #e5e7eb; border: 1px solid #9ca3af; }
+.gantt-board .gantt-bar.doing { background: #dbeafe; border: 1px solid #3b82f6; }
+.gantt-board .gantt-bar.done { background: #d1fae5; border: 1px solid #10b981; }
+.gantt-board .gantt-bar.todo .gantt-fill { background: #6b7280; }
+.gantt-board .gantt-bar.doing .gantt-fill { background: #2563eb; }
+.gantt-board .gantt-bar.done .gantt-fill { background: #059669; }
+.story-sentence { margin: 6px 0; font-size: 13px; line-height: 1.5; }
+.member-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.uml-actor { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; }
+.uml-cases { display: flex; flex-wrap: wrap; gap: 8px; }
+.uml-source { white-space: pre-wrap; font-size: 12px; background: #f8f8fc; border-radius: 10px; padding: 12px; margin-top: 12px; }
 .uml-box { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
 .uml-node { border: 1px solid var(--line); border-radius: 10px; padding: 16px 22px; background: var(--brand-soft); }
 .uml-line { width: 40px; height: 2px; background: #c7cbe0; }

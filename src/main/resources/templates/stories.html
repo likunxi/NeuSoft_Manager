@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2 th:text="${project.name + ' · 故事看板'}">故事看板</h2>
+                    <p th:text="${'共 ' + storyCount + ' 条用户故事。卡片上是角色、愿望和目的。'}">说明</p>
+                </div>
+                <div class="card-actions">
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/tasks|}">任务看板</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/gantt|}">甘特图</a>
+                    <a class="btn ghost" th:if="${me.has('board:view')}" th:href="@{|/projects/${project.id}/members|}">成员图</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/uml|}">UML</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/links|}">联动</a>
+                </div>
+            </div>
+            <div class="hint-box" th:if="${ok}" th:text="${ok}">成功</div>
+            <div class="hint-box">联动规则里的「故事 → 甘特」打开后，修改故事状态会把该故事下的任务改成同一状态。</div>
+            <div class="kanban" th:attr="data-story-count=${storyCount}">
+                <div class="kanban-col" th:each="col : ${columns}">
+                    <h3>
+                        <span th:text="${col.key == 'todo' ? '待办' : (col.key == 'doing' ? '进行中' : '已完成')}">列</span>
+                        <span th:text="${col.value.size()}">0</span>
+                    </h3>
+                    <div class="kcard" th:each="card : ${col.value}" th:classappend="${card.story.status}">
+                        <div class="kcard-top">
+                            <span class="code" th:text="${card.story.storyCode}">E1-01</span>
+                            <span class="tag" th:text="${card.story.moscow}">Must</span>
+                        </div>
+                        <strong th:text="${card.story.title}">标题</strong>
+                        <p class="story-sentence" th:text="${'作为' + card.story.asRole + '，我希望' + card.story.iWant + '，以便' + card.story.soThat}">故事</p>
+                        <div class="muted" th:if="${card.tasks.isEmpty()}">下面还没有任务</div>
+                        <div class="muted" th:each="t : ${card.tasks}" th:text="${t.title}">任务</div>
+                        <form class="form-row tight" method="post" th:if="${me.has('task:update_any')}"
+                              th:action="@{|/projects/${project.id}/stories/${card.story.id}/status|}">
+                            <select name="status">
+                                <option value="todo" th:selected="${card.story.status == 'todo'}">待办</option>
+                                <option value="doing" th:selected="${card.story.status == 'doing'}">进行中</option>
+                                <option value="done" th:selected="${card.story.status == 'done'}">已完成</option>
+                            </select>
+                            <button class="btn tiny" type="submit">保存状态</button>
+                        </form>
+                    </div>
+                    <div class="empty" th:if="${col.value.isEmpty()}">这一列没有故事</div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

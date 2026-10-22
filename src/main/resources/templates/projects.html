@@ -28,6 +28,11 @@
                         <a class="btn tiny" th:href="@{|/projects/${p.id}/tasks|}">任务看板</a>
                         <a class="btn tiny ghost" th:if="${me.has('trend:view')}" th:href="@{|/projects/${p.id}/trend|}">趋势</a>
                         <a class="btn tiny ghost" th:href="@{|/projects/${p.id}/timeline|}">时间轴</a>
+                        <a class="btn tiny ghost" th:if="${me.has('board:view')}" th:href="@{|/projects/${p.id}/stories|}">故事</a>
+                        <a class="btn tiny ghost" th:if="${me.has('board:view')}" th:href="@{|/projects/${p.id}/gantt|}">甘特图</a>
+                        <a class="btn tiny ghost" th:if="${me.has('board:view')}" th:href="@{|/projects/${p.id}/members|}">成员图</a>
+                        <a class="btn tiny ghost" th:if="${me.has('board:view')}" th:href="@{|/projects/${p.id}/uml|}">UML</a>
+                        <a class="btn tiny ghost" th:href="@{|/projects/${p.id}/links|}">联动</a>
                     </div>
                 </div>
             </div>

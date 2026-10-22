@@ -10,14 +10,14 @@
             <div class="page-h">
                 <div>
                     <h2>项目总览</h2>
-                    <p th:text="${homeProject != null ? homeProject.name + ' · 用爱管理看见本轮 Sprint 1' : '还没有项目，先去项目页新建'}">总览</p>
+                    <p th:text="${homeProject != null ? homeProject.name + ' · Sprint 1 仍在，Sprint 2 从项目卡片进入' : '还没有项目，先去项目页新建'}">总览</p>
                 </div>
                 <div class="card-actions">
                     <a class="btn ghost" th:href="@{/work}">打开任务看板</a>
                     <a class="btn" href="/projects">全部项目</a>
                 </div>
             </div>
-            <div class="hint-box">种子项目「22组-爱管理」就是我们自己的 Sprint 1 待办。评审演示的是自举：用爱管理管理爱管理。</div>
+            <div class="hint-box">种子项目「22组-爱管理」同时放着 Sprint 1 和 Sprint 2 的故事。评审演示的是自举：用爱管理管理爱管理。</div>
             <div class="metrics">
                 <div class="metric"><span>任务总数</span><b th:text="${trend.total}">0</b><span>当前项目</span></div>
                 <div class="metric"><span>待办</span><b th:text="${trend.todo}">0</b><span>还没开工</span></div>

@@ -83,7 +83,32 @@ INSERT INTO pm_story (id, project_id, story_code, title, as_role, i_want, so_tha
 (7, 1, 'E1-08', '监控进度与完成趋势', '项目经理', '监控进度与完成趋势', '决策支持', 'Must', 1, 'todo', 70),
 (8, 1, 'E1-09', '成员工作量统计', '管理员', '查看成员工作量统计', '调配人力', 'Should', 1, 'todo', 80);
 
-UPDATE pm_task SET story_id = id WHERE project_id = 1;
+UPDATE pm_task SET story_id = id WHERE project_id = 1 AND story_code LIKE 'E1-%';
+
+-- Sprint 2：任务看板进阶 2 列。故事号以 E2 开头才会进这一列。
+INSERT INTO pm_story (id, project_id, story_code, title, as_role, i_want, so_that, moscow, sprint_no, status, sort_order) VALUES
+(9,  1, 'E2-01', '故事看板',         '项目经理', '在故事看板上按三列查看用户故事',     '把需求和任务对上',   'Must',   2, 'done',  210),
+(10, 1, 'E2-02', '只读甘特图',       '项目经理', '按起止日期看到任务条和实际进度',     '安排这一周的工作',   'Must',   2, 'doing', 220),
+(11, 1, 'E2-03', '成员任务图',       '项目经理', '按成员看到各自负责的任务',           '发现谁的活堆在一起', 'Must',   2, 'doing', 230),
+(12, 1, 'E2-04', '由故事生成 UML',   '团队成员', '从故事和状态日志生成用例图和时序图', '不用手画结构',       'Should', 2, 'doing', 240),
+(13, 1, 'E2-05', '需求变更同步甘特', '项目经理', '改故事状态时同步到甘特上的任务',     '需求和排期不各写各的', 'Must', 2, 'todo',  250),
+(14, 1, 'E2-06', '看板状态刷新成员图','项目经理', '看板上改状态后成员图跟着刷新',       '人力视图不落后',     'Must',   2, 'todo',  260),
+(15, 1, 'E2-07', '视图联动规则',     '项目经理', '打开或关闭视图之间的联动',           '同步只在需要时发生', 'Must',   2, 'todo',  270);
+
+INSERT INTO pm_task (id, project_id, story_id, story_code, title, description, assignee_id, created_by, status, start_date, due_date, progress, created_at, updated_at, done_at) VALUES
+(8,  1, 9,  'E2-01', '故事看板',           '在故事看板上按三列查看用户故事',     10, 10, 'done',  CURDATE() - INTERVAL 1 DAY, CURDATE(),                 100, NOW(), NOW(), NOW()),
+(9,  1, 10, 'E2-02', '只读甘特图',         '按起止日期看到任务条和实际进度',     11, 10, 'doing', CURDATE(),                   CURDATE() + INTERVAL 3 DAY,  70, NOW(), NOW(), NULL),
+(10, 1, 11, 'E2-03', '成员任务图',         '按成员看到各自负责的任务',           12, 10, 'doing', CURDATE(),                   CURDATE() + INTERVAL 3 DAY,  60, NOW(), NOW(), NULL),
+(11, 1, 12, 'E2-04', '由故事生成 UML',     '从故事和状态日志生成用例图和时序图', 13, 10, 'doing', CURDATE() + INTERVAL 1 DAY, CURDATE() + INTERVAL 4 DAY,  50, NOW(), NOW(), NULL),
+(12, 1, 13, 'E2-05', '需求变更同步甘特',   '改故事状态时同步到甘特上的任务',     10, 10, 'todo',  CURDATE() + INTERVAL 2 DAY, CURDATE() + INTERVAL 6 DAY,   0, NOW(), NOW(), NULL),
+(13, 1, 14, 'E2-06', '看板状态刷新成员图', '看板上改状态后成员图跟着刷新',       11, 10, 'todo',  CURDATE() + INTERVAL 2 DAY, CURDATE() + INTERVAL 6 DAY,   0, NOW(), NOW(), NULL),
+(14, 1, 15, 'E2-07', '视图联动规则',       '打开或关闭视图之间的联动',           12, 10, 'todo',  CURDATE() + INTERVAL 3 DAY, CURDATE() + INTERVAL 7 DAY,   0, NOW(), NOW(), NULL);
+
+INSERT INTO pm_task_status_log (task_id, project_id, from_status, to_status, operator_id, remark, created_at) VALUES
+(8,  1, 'todo', 'done',  10, '补上进阶 2 任务', NOW()),
+(9,  1, 'todo', 'doing', 11, '补上进阶 2 任务', NOW()),
+(10, 1, 'todo', 'doing', 12, '补上进阶 2 任务', NOW()),
+(11, 1, 'todo', 'doing', 13, '补上进阶 2 任务', NOW());
 
 -- 默认联动规则先写入，Sprint2 打开开关即可，本轮页面不读
 INSERT INTO vw_link_rule (project_id, source_view, target_view, event_type, is_enabled, created_by) VALUES

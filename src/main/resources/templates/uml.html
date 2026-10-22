@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2 th:text="${project.name + ' · UML'}">UML</h2>
+                    <p>用例来自用户故事，时序来自状态日志。图在本地画出，不调用模型。</p>
+                </div>
+                <div class="card-actions">
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/stories|}">故事看板</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/timeline|}">时间轴</a>
+                    <form method="post" th:action="@{|/projects/${project.id}/uml|}">
+                        <button class="btn" type="submit">保存快照</button>
+                    </form>
+                </div>
+            </div>
+            <div class="hint-box" th:if="${ok}" th:text="${ok}">成功</div>
+            <p class="muted" th:if="${diagram.savedAt != null}" th:text="${'最近一次快照：' + diagram.savedAt}">快照</p>
+            <div class="viz-grid">
+                <div class="panel">
+                    <h3>用例图</h3>
+                    <div class="uml-actor" th:each="actor : ${diagram.actors}">
+                        <div class="uml-node" th:text="${actor.name}">角色</div>
+                        <div class="uml-cases">
+                            <div class="uml-node" th:each="uc : ${actor.cases}" th:text="${uc}">用例</div>
+                        </div>
+                    </div>
+                    <div class="empty" th:if="${diagram.actors.isEmpty()}">还没有用户故事</div>
+                    <pre class="uml-source" th:text="${diagram.usecaseMermaid}">mermaid</pre>
+                </div>
+                <div class="panel">
+                    <h3>时序</h3>
+                    <ol>
+                        <li th:each="step : ${diagram.steps}" th:text="${step}">步骤</li>
+                    </ol>
+                    <div class="empty" th:if="${diagram.steps.isEmpty()}">还没有可画的步骤</div>
+                    <pre class="uml-source" th:text="${diagram.sequenceMermaid}">mermaid</pre>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

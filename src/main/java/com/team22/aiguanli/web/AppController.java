@@ -10,7 +10,13 @@ import com.team22.aiguanli.mapper.SysUserMapper;
 import com.team22.aiguanli.security.LoginUser;
 import com.team22.aiguanli.security.RequirePerm;
 import com.team22.aiguanli.service.AuthService;
+import com.team22.aiguanli.service.GanttService;
+import com.team22.aiguanli.service.LinkRuleService;
+import com.team22.aiguanli.service.MemberMapService;
 import com.team22.aiguanli.service.ProjectService;
+import com.team22.aiguanli.service.StoryBoardService;
+import com.team22.aiguanli.service.UmlService;
+import com.team22.aiguanli.service.ViewSyncService;
 import com.team22.aiguanli.service.RoleAdminService;
 import com.team22.aiguanli.service.StatsService;
 import com.team22.aiguanli.service.TaskStages;
@@ -41,19 +47,37 @@ public class AppController {
     private final ProjectService projectService;
     private final StatsService statsService;
     private final AuthService authService;
+    private final GanttService ganttService;
+    private final StoryBoardService storyBoardService;
+    private final MemberMapService memberMapService;
+    private final UmlService umlService;
+    private final LinkRuleService linkRuleService;
+    private final ViewSyncService viewSyncService;
 
     public AppController(SysUserMapper userMapper,
                          UserAdminService userAdminService,
                          RoleAdminService roleAdminService,
                          ProjectService projectService,
                          StatsService statsService,
-                         AuthService authService) {
+                         AuthService authService,
+                         GanttService ganttService,
+                         StoryBoardService storyBoardService,
+                         MemberMapService memberMapService,
+                         UmlService umlService,
+                         LinkRuleService linkRuleService,
+                         ViewSyncService viewSyncService) {
         this.userMapper = userMapper;
         this.userAdminService = userAdminService;
         this.roleAdminService = roleAdminService;
         this.projectService = projectService;
         this.statsService = statsService;
         this.authService = authService;
+        this.ganttService = ganttService;
+        this.storyBoardService = storyBoardService;
+        this.memberMapService = memberMapService;
+        this.umlService = umlService;
+        this.linkRuleService = linkRuleService;
+        this.viewSyncService = viewSyncService;
     }
 
     @GetMapping("/dashboard")
@@ -381,6 +405,100 @@ public class AppController {
         model.addAttribute("userNames", nameMap());
         model.addAttribute("taskTitles", taskTitleMap(id));
         return "timeline";
+    }
+
+    @GetMapping("/projects/{id}/gantt")
+    @RequirePerm("board:view")
+    public String gantt(@PathVariable Long id, Model model) {
+        GanttService.View gantt = ganttService.view(id);
+        model.addAttribute("pageTitle", "甘特图");
+        model.addAttribute("nav", "gantt");
+        model.addAttribute("project", gantt.project);
+        model.addAttribute("bars", gantt.bars);
+        model.addAttribute("groups", gantt.groups);
+        model.addAttribute("days", gantt.days);
+        model.addAttribute("todayPct", gantt.todayPct);
+        model.addAttribute("rangeStart", gantt.rangeStart);
+        model.addAttribute("rangeEnd", gantt.rangeEnd);
+        model.addAttribute("taskCount", gantt.taskCount);
+        model.addAttribute("userNames", nameMap());
+        model.addAttribute("dependencies", ganttService.dependencyLines(id));
+        model.addAttribute("syncEvents", viewSyncService.recent(id, ViewSyncService.STORY_CHANGED, 8));
+        return "gantt";
+    }
+
+    @GetMapping("/projects/{id}/stories")
+    @RequirePerm("board:view")
+    public String stories(@PathVariable Long id, Model model) {
+        StoryBoardService.Board board = storyBoardService.board(id);
+        model.addAttribute("pageTitle", "故事看板");
+        model.addAttribute("nav", "stories");
+        model.addAttribute("project", projectService.getProject(id));
+        model.addAttribute("columns", board.columns);
+        model.addAttribute("storyCount", board.total);
+        return "stories";
+    }
+
+    @PostMapping("/projects/{id}/stories/{storyId}/status")
+    @RequirePerm("board:view")
+    public String storyStatus(@PathVariable Long id,
+                              @PathVariable Long storyId,
+                              @RequestParam String status,
+                              LoginUser me,
+                              RedirectAttributes ra) {
+        storyBoardService.changeStatus(id, storyId, status, me);
+        ra.addFlashAttribute("ok", "故事状态已保存");
+        return "redirect:/projects/" + id + "/stories";
+    }
+
+    @GetMapping("/projects/{id}/members")
+    @RequirePerm("board:view")
+    public String members(@PathVariable Long id, Model model) {
+        model.addAttribute("pageTitle", "成员任务图");
+        model.addAttribute("nav", "members");
+        model.addAttribute("project", projectService.getProject(id));
+        model.addAttribute("columns", memberMapService.columns(id));
+        model.addAttribute("syncEvents", viewSyncService.recent(id, ViewSyncService.TASK_STATUS_CHANGED, 8));
+        return "members";
+    }
+
+    @GetMapping("/projects/{id}/uml")
+    @RequirePerm("board:view")
+    public String uml(@PathVariable Long id, Model model) {
+        model.addAttribute("pageTitle", "UML");
+        model.addAttribute("nav", "uml");
+        model.addAttribute("project", projectService.getProject(id));
+        model.addAttribute("diagram", umlService.diagram(id));
+        return "uml";
+    }
+
+    @PostMapping("/projects/{id}/uml")
+    @RequirePerm("board:view")
+    public String saveUml(@PathVariable Long id, LoginUser me, RedirectAttributes ra) {
+        umlService.save(id, me.getId());
+        ra.addFlashAttribute("ok", "已把当前 UML 写入快照");
+        return "redirect:/projects/" + id + "/uml";
+    }
+
+    @GetMapping("/projects/{id}/links")
+    @RequirePerm("project:view")
+    public String links(@PathVariable Long id, Model model) {
+        model.addAttribute("pageTitle", "联动规则");
+        model.addAttribute("nav", "links");
+        model.addAttribute("project", projectService.getProject(id));
+        model.addAttribute("rules", linkRuleService.list(id));
+        return "links";
+    }
+
+    @PostMapping("/projects/{id}/links/{ruleId}")
+    @RequirePerm("project:create")
+    public String toggleLink(@PathVariable Long id,
+                             @PathVariable Long ruleId,
+                             @RequestParam int enabled,
+                             RedirectAttributes ra) {
+        linkRuleService.toggle(id, ruleId, enabled == 1);
+        ra.addFlashAttribute("ok", enabled == 1 ? "已打开联动" : "已关闭联动");
+        return "redirect:/projects/" + id + "/links";
     }
 
     @GetMapping("/coming/{page}")

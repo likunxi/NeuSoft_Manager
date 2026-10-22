@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side}"></aside>
+    <div class="workspace">
+        <header th:replace="~{fragments :: top}"></header>
+        <main class="content">
+            <div class="page-h">
+                <div>
+                    <h2 th:text="${project.name + ' · 成员任务图'}">成员任务图</h2>
+                    <p>按负责人列出当前任务。数字直接读任务状态，不是写死的。</p>
+                </div>
+                <div class="card-actions">
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/tasks|}">任务看板</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/stories|}">故事看板</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/gantt|}">甘特图</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/links|}">联动</a>
+                </div>
+            </div>
+            <div class="member-board" th:attr="data-member-count=${columns.size()}">
+                <div class="panel" th:each="col : ${columns}">
+                    <h3>
+                        <span th:text="${col.name}">成员</span>
+                        <span class="muted" th:text="${col.total + ' 条'}">0</span>
+                    </h3>
+                    <div class="legend">
+                        <span><i class="dot todo"></i><span th:text="${'待办 ' + col.todo}">0</span></span>
+                        <span><i class="dot doing"></i><span th:text="${'进行中 ' + col.doing}">0</span></span>
+                        <span><i class="dot done"></i><span th:text="${'已完成 ' + col.done}">0</span></span>
+                    </div>
+                    <div class="stack" th:if="${col.total > 0}">
+                        <i class="todo" th:style="|width:${col.todo * 100 / col.total}%|"></i>
+                        <i class="doing" th:style="|width:${col.doing * 100 / col.total}%|"></i>
+                        <i class="done" th:style="|width:${col.done * 100 / col.total}%|"></i>
+                    </div>
+                    <div class="kcard" th:each="t : ${col.tasks}" th:classappend="${t.status}">
+                        <span class="code" th:text="${t.storyCode}">E1-01</span>
+                        <strong th:text="${t.title}">任务</strong>
+                        <span class="pill" th:classappend="${t.status}" th:text="${t.status == 'todo' ? '待办' : (t.status == 'doing' ? '进行中' : '已完成')}">状态</span>
+                    </div>
+                </div>
+            </div>
+            <div class="empty" th:if="${columns.isEmpty()}">这个项目还没有任务</div>
+            <div class="panel" style="margin-top:12px">
+                <h3>状态同步记录</h3>
+                <p class="muted" th:if="${syncEvents.isEmpty()}">打开「联动」里的看板 → 成员图之后，在任务看板上改状态，这里会出现一条记录。</p>
+                <p th:each="e : ${syncEvents}"><span class="muted" th:text="${e.createdAt}"></span> <span th:text="${e.summary}">记录</span></p>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

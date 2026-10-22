@@ -18,12 +18,12 @@
     <a th:href="@{/profile}" th:classappend="${nav=='profile'} ? ' active'">权限地图</a>
     <a th:if="${me != null and me.has('user:manage')}" th:href="@{/users}" th:classappend="${nav=='users'} ? ' active'">用户管理</a>
     <a th:if="${me != null and me.has('role:manage')}" th:href="@{/roles}" th:classappend="${nav=='roles'} ? ' active'">角色权限</a>
-    <div class="hint">任务看板按进阶 1/2/3 横排。甘特、UML、AI 只在时间轴留了入口。</div>
+    <div class="hint">故事、甘特、成员图、UML 从项目卡片进入。AI 助手仍是预留入口。</div>
 </aside>
 <header th:fragment="top" class="top">
     <div class="top-left">
         <span>22组-爱管理</span>
-        <span class="chip">Sprint 1</span>
+        <span class="chip">Sprint 2</span>
     </div>
     <form class="search" th:action="@{/search}" method="get">
         <input name="q" placeholder="搜索任务标题或故事号 E1-01" th:value="${q}">

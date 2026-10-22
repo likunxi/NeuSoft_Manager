@@ -10,13 +10,14 @@
             <div class="page-h">
                 <div>
                     <h2 th:text="${project.name + ' · 状态时间轴'}">时间轴</h2>
-                    <p>看见协作过程。右上角是后两阶入口：点进去是预留界面，本轮不实现功能。</p>
+                    <p>看见协作过程。故事、甘特、UML 已按当前数据展示。AI 助手仍是预留页。</p>
                 </div>
                 <div class="card-actions">
                     <a class="btn ghost" th:href="@{/work}">任务看板</a>
-                    <a class="btn ghost" th:href="@{|/coming/gantt?projectId=${project.id}|}">甘特图</a>
-                    <a class="btn ghost" th:href="@{|/coming/story-map?projectId=${project.id}|}">故事地图</a>
-                    <a class="btn ghost" th:href="@{|/coming/uml?projectId=${project.id}|}">UML</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/stories|}">故事看板</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/gantt|}">甘特图</a>
+                    <a class="btn ghost" th:if="${me.has('board:view')}" th:href="@{|/projects/${project.id}/members|}">成员图</a>
+                    <a class="btn ghost" th:href="@{|/projects/${project.id}/uml|}">UML</a>
                     <a class="btn" th:href="@{|/coming/ai?projectId=${project.id}|}">AI 助手</a>
                 </div>
             </div>
