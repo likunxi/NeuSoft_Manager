@@ -78,6 +78,11 @@
                 <p class="muted" th:if="${syncEvents == null or syncEvents.isEmpty()}">打开联动里的故事 → 甘特后，在故事看板上改状态，这里会记下同步了几条任务。</p>
                 <p th:each="e : ${syncEvents}"><span class="muted" th:text="${e.createdAt}"></span> <span th:text="${e.summary}">记录</span></p>
             </div>
+            <div class="panel" style="margin-top:12px">
+                <h3>智能排期</h3>
+                <p class="muted" th:if="${scheduleEvents == null or scheduleEvents.isEmpty()}">在 AI 助手里对排期建议点写入甘特后，这里留下记录，只保留最近 3 条。</p>
+                <p th:each="e : ${scheduleEvents}"><span class="muted" th:text="${e.createdAt}"></span> <span th:text="${e.summary}">记录</span></p>
+            </div>
         </main>
     </div>
 </div>

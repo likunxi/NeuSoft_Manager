@@ -151,6 +151,32 @@ th, td { padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: le
 .panel .field { width: 100%; display: block; margin: 6px 0 10px; }
 .account-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 .viz-grid { display: grid; grid-template-columns: 1.1fr 1fr .8fr; gap: 12px; }
+.uml-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.uml-grid .panel:first-child { border-top: 3px solid #5b6cff; }
+.uml-grid .panel:last-child { border-top: 3px solid #10b981; }
+.uml-diagram {
+  overflow: auto; margin: 0 0 12px; padding: 14px; min-height: 200px;
+  border: 1px solid #e4e7f5; border-radius: 12px;
+  background:
+    radial-gradient(circle at 0 0, rgba(91, 108, 255, .12), transparent 46%),
+    radial-gradient(circle at 100% 0, rgba(16, 185, 129, .12), transparent 42%),
+    linear-gradient(180deg, #fbfbff, #f6f7fb);
+}
+.uml-diagram .mermaid { margin: 0; background: transparent; white-space: pre-wrap; }
+.uml-diagram svg { max-width: none !important; height: auto; }
+.uml-diagram .is-drawn { white-space: normal; }
+.uml-diagram .node rect,
+.uml-diagram .cluster rect,
+.uml-diagram .actor { rx: 12px; }
+.uml-diagram .nodeLabel { line-height: 1.45; }
+.uml-actor.tone-0 > .uml-node { background: #eef0ff; border-color: #5b6cff; color: #312e81; }
+.uml-actor.tone-1 > .uml-node { background: #ecfdf5; border-color: #10b981; color: #065f46; }
+.uml-actor.tone-2 > .uml-node { background: #fff7ed; border-color: #f59e0b; color: #9a3412; }
+.uml-actor.tone-3 > .uml-node { background: #eff6ff; border-color: #3b82f6; color: #1e3a8a; }
+.uml-actor.tone-4 > .uml-node { background: #fdf2f8; border-color: #ec4899; color: #9d174d; }
+.uml-actor.tone-5 > .uml-node { background: #f5f3ff; border-color: #8b5cf6; color: #5b21b6; }
+.uml-code { margin-top: 8px; }
+.uml-code summary { cursor: pointer; color: var(--muted); font-size: 12px; }
 .donut-wrap { display: flex; align-items: center; gap: 18px; }
 .donut { width: 140px; height: 140px; border-radius: 50%; }
 .donut-legend { font-size: 13px; line-height: 1.8; }
@@ -278,7 +304,7 @@ body.ai-open .workspace { margin-right: 33.333vw; }
 }
 .ai-anchor { scroll-margin-top: 52px; }
 @media (max-width: 1280px) {
-  .account-grid, .viz-grid { grid-template-columns: 1fr; }
+  .account-grid, .viz-grid, .uml-grid { grid-template-columns: 1fr; }
   .wl-row { grid-template-columns: 1fr; }
 }
 @media (max-width: 1280px) {

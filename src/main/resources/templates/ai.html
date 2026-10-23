@@ -11,7 +11,7 @@
             <div class="page-h">
                 <div>
                     <h2 th:text="${project.name + ' · AI 助手'}">AI 助手</h2>
-                    <p>项目经理先选择分析对象。报告只供阅读，不会改任务、甘特和人员。拆需求仍然要采纳后才写入。</p>
+                    <p>进度预测按剩余工期算出日期，大模型只解释这个日期。效率建议只供阅读。智能排期确认后才改甘特。</p>
                 </div>
                 <div class="card-actions" th:unless="${panel}">
                     <a class="btn ghost" th:href="@{|/projects/${project.id}/stories|}">故事看板</a>
@@ -19,13 +19,16 @@
                 </div>
             </div>
             <div class="hint-box" th:if="${ok}" th:text="${ok}">结果</div>
-            <div class="hint-box" th:text="${llmReady ? '大模型已配置，生成建议会调用 ' + llmModel + '。人审通过后才写回。' : '还没有密钥。先保存下面的配置，再生成建议。'}">模型状态</div>
-            <div class="hint-box" th:if="${me != null and !me.has('task:create')}">当前账号不能提交拆解，也不能写回。请换项目经理账号。</div>
+            <div class="hint-box" th:text="${llmReady ? '大模型已配置。拆需求、进度说明和效率建议会调用 ' + llmModel + '。预测日期按规则算出，智能排期确认后才改甘特。' : '没有密钥时，进度预测仍给出日期，效率建议按规则列出。拆需求需要先保存配置。'}">模型状态</div>
+            <div class="hint-box" th:if="${me != null and !me.has('task:create')}">当前账号不能排期，也不能提交拆解或写回。请换项目经理账号。</div>
 
             <nav class="ai-toc" aria-label="AI 助手目录">
                 <a th:if="${me != null and me.has('task:create')}" href="#ai-model">大模型</a>
                 <a th:if="${me != null and me.has('task:create')}" href="#ai-analyze">选择分析</a>
                 <a href="#ai-reports">分析报告</a>
+                <a th:if="${me != null and me.has('task:create')}" href="#ai-schedule">智能排期</a>
+                <a th:if="${me != null and me.has('task:create')}" href="#ai-forecast">进度预测</a>
+                <a th:if="${me != null and me.has('task:create')}" href="#ai-advice">效率优化</a>
                 <a th:if="${me != null and me.has('task:create')}" href="#ai-split">提交需求</a>
                 <a href="#ai-pending">待审建议</a>
                 <a href="#ai-risk">延期风险</a>
@@ -78,6 +81,74 @@
                     <div class="fold-body report" th:text="${r.report}">报告</div>
                 </details>
             </article>
+
+            <section class="card-box ai-anchor" id="ai-schedule" th:if="${me != null and me.has('task:create')}">
+                <h3>智能排期</h3>
+                <p class="muted">不调用大模型。待办按 Must、Should、Could 的顺序排，每人同一时间只做一件；有前置任务时，从前置截止日的第二天开始。进行中和已完成的日期不动。点写入甘特之后，色条才会挪到新日期。</p>
+                <form method="post" th:action="@{|/projects/${project.id}/ai/schedule|}">
+                    <input type="hidden" name="panel" value="1" th:if="${panel}">
+                    <button class="btn" type="submit">生成排期建议</button>
+                </form>
+                <div class="empty" th:if="${schedule == null}">还没有待确认的排期建议</div>
+                <div th:if="${schedule != null}">
+                    <p class="muted" th:text="${'建议 #' + schedule.id + ' · ' + schedule.createdAt}">时间</p>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                            <tr><th>任务</th><th>负责人</th><th>原日期</th><th>建议日期</th><th>原因</th></tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="slot : ${schedule.slots}">
+                                <td>
+                                    <span class="code" th:text="${slot.storyCode}">E1</span>
+                                    <span th:text="${slot.title}">任务</span>
+                                </td>
+                                <td th:text="${slot.assigneeName}">人</td>
+                                <td th:text="${slot.previousStart == '' ? '未排期' : (slot.previousStart + ' 至 ' + slot.previousDue)}">原日期</td>
+                                <td th:text="${slot.startDate + ' 至 ' + slot.dueDate}">新日期</td>
+                                <td th:text="${slot.reason}">原因</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <form method="post" th:action="@{|/projects/${project.id}/ai/schedule/${schedule.id}|}">
+                        <input type="hidden" name="panel" value="1" th:if="${panel}">
+                        <div class="form-row">
+                            <button class="btn" type="submit" name="decision" value="accept">写入甘特</button>
+                            <button class="btn ghost" type="submit" name="decision" value="reject">不采用</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section class="card-box ai-anchor" id="ai-forecast" th:if="${me != null and me.has('task:create')}">
+                <h3>进度预测</h3>
+                <p class="muted">按甘特上未完成任务的剩余工期，加上近 7 天完成条数，算出预测完成日。配置了大模型时，模型只解释这个日期，不能改日期。甘特图不动。</p>
+                <form method="post" th:action="@{|/projects/${project.id}/ai/forecast|}">
+                    <input type="hidden" name="panel" value="1" th:if="${panel}">
+                    <button class="btn" type="submit">生成预测</button>
+                </form>
+                <div class="empty" th:if="${prediction == null}">还没有进度预测</div>
+                <div th:if="${prediction != null}">
+                    <p class="muted" th:text="${'预测 #' + prediction.id + ' · ' + prediction.createdAt}">时间</p>
+                    <p>预测完成日 <strong th:text="${prediction.predictedEnd}">日期</strong>，信心 <span th:text="${prediction.confidenceText}">中</span></p>
+                    <div class="report" th:text="${prediction.narrative}">说明</div>
+                </div>
+            </section>
+
+            <section class="card-box ai-anchor" id="ai-advice" th:if="${me != null and me.has('task:create')}">
+                <h3>效率优化</h3>
+                <p class="muted">根据当前剩余工期，指出谁把结束日撑晚了，并给出可执行建议。不改任务、不改甘特。要改日期，用上面的智能排期，确认后再写入。</p>
+                <form method="post" th:action="@{|/projects/${project.id}/ai/advice|}">
+                    <input type="hidden" name="panel" value="1" th:if="${panel}">
+                    <button class="btn" type="submit">生成效率建议</button>
+                </form>
+                <div class="empty" th:if="${advice == null}">还没有效率建议</div>
+                <div th:if="${advice != null}">
+                    <p class="muted" th:text="${'建议 #' + advice.id + ' · ' + advice.createdAt}">时间</p>
+                    <div class="report" th:text="${advice.report}">建议</div>
+                </div>
+            </section>
 
             <section class="card-box ai-anchor" id="ai-split" th:if="${me != null and me.has('task:create')}">
                 <h3>提交需求</h3>

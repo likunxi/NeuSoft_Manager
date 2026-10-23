@@ -10,7 +10,7 @@
             <div class="page-h">
                 <div>
                     <h2 th:text="${project.name + ' · UML'}">UML</h2>
-                    <p>用例来自用户故事，时序来自状态日志。图在本地画出，不调用模型。</p>
+                    <p>用例来自用户故事，时序来自状态日志。图形代码在本页画成图，不调用模型。</p>
                 </div>
                 <div class="card-actions">
                     <a class="btn ghost" th:href="@{|/projects/${project.id}/stories|}">故事看板</a>
@@ -22,29 +22,174 @@
             </div>
             <div class="hint-box" th:if="${ok}" th:text="${ok}">成功</div>
             <p class="muted" th:if="${diagram.savedAt != null}" th:text="${'最近一次快照：' + diagram.savedAt}">快照</p>
-            <div class="viz-grid">
+            <div class="uml-grid">
                 <div class="panel">
                     <h3>用例图</h3>
-                    <div class="uml-actor" th:each="actor : ${diagram.actors}">
+                    <div class="uml-diagram">
+                        <pre class="mermaid" th:text="${diagram.usecaseMermaid}">flowchart LR</pre>
+                    </div>
+                    <div class="uml-actor" th:each="actor, stat : ${diagram.actors}" th:classappend="'tone-' + ${stat.index % 6}">
                         <div class="uml-node" th:text="${actor.name}">角色</div>
                         <div class="uml-cases">
                             <div class="uml-node" th:each="uc : ${actor.cases}" th:text="${uc}">用例</div>
                         </div>
                     </div>
                     <div class="empty" th:if="${diagram.actors.isEmpty()}">还没有用户故事</div>
-                    <pre class="uml-source" th:text="${diagram.usecaseMermaid}">mermaid</pre>
+                    <details class="uml-code">
+                        <summary>图形代码</summary>
+                        <pre class="uml-source" th:text="${diagram.usecaseMermaid}">mermaid</pre>
+                    </details>
                 </div>
                 <div class="panel">
-                    <h3>时序</h3>
+                    <h3>时序图</h3>
+                    <div class="uml-diagram">
+                        <pre class="mermaid" th:text="${diagram.sequenceMermaid}">sequenceDiagram</pre>
+                    </div>
                     <ol>
                         <li th:each="step : ${diagram.steps}" th:text="${step}">步骤</li>
                     </ol>
                     <div class="empty" th:if="${diagram.steps.isEmpty()}">还没有可画的步骤</div>
-                    <pre class="uml-source" th:text="${diagram.sequenceMermaid}">mermaid</pre>
+                    <details class="uml-code">
+                        <summary>图形代码</summary>
+                        <pre class="uml-source" th:text="${diagram.sequenceMermaid}">mermaid</pre>
+                    </details>
                 </div>
             </div>
         </main>
     </div>
 </div>
+<script th:src="@{/js/mermaid.min.js}"></script>
+<script>
+    (function () {
+        var nodes = document.querySelectorAll(".uml-diagram .mermaid");
+        if (!window.mermaid || !nodes.length) {
+            return;
+        }
+        var font = '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+        mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: "strict",
+            suppressErrorRendering: true,
+            theme: "base",
+            fontFamily: font,
+            themeVariables: {
+                fontFamily: font,
+                fontSize: "14px",
+                primaryColor: "#EEF0FF",
+                primaryTextColor: "#1F2937",
+                primaryBorderColor: "#5B6CFF",
+                secondaryColor: "#ECFDF5",
+                tertiaryColor: "#FFF7ED",
+                lineColor: "#6366F1",
+                textColor: "#1F2937",
+                actorBkg: "#EEF0FF",
+                actorBorder: "#5B6CFF",
+                actorTextColor: "#312E81",
+                actorLineColor: "#A5B4FC",
+                signalColor: "#4F46E5",
+                signalTextColor: "#1F2937",
+                labelBoxBkgColor: "#ECFDF5",
+                labelBoxBorderColor: "#10B981",
+                labelTextColor: "#065F46",
+                activationBkgColor: "#D1FAE5",
+                activationBorderColor: "#10B981",
+                sequenceNumberColor: "#FFFFFF",
+                noteBkgColor: "#FFF7ED",
+                noteBorderColor: "#F59E0B",
+                noteTextColor: "#9A3412"
+            },
+            flowchart: { htmlLabels: true, useMaxWidth: false, curve: "basis", padding: 16, nodeSpacing: 26, rankSpacing: 42, wrappingWidth: 220 },
+            sequence: { useMaxWidth: false, wrap: false, mirrorActors: false, diagramMarginX: 16, diagramMarginY: 8, actorMargin: 36, messageMargin: 40 }
+        });
+        Array.prototype.forEach.call(nodes, function (node, index) {
+            var code = paintDiagram(node.textContent.trim());
+            mermaid.render("umlPic" + index, code).then(function (result) {
+                node.innerHTML = result.svg;
+                node.classList.add("is-drawn");
+            }).catch(function () {
+                node.classList.add("is-raw");
+            });
+        });
+
+        function paintDiagram(code) {
+            if (code.indexOf("flowchart") === 0 && code.indexOf("style ") < 0) {
+                return paintFlow(code);
+            }
+            if (code.indexOf("sequenceDiagram") === 0 && code.indexOf("rect ") < 0) {
+                return paintSequence(code);
+            }
+            return code;
+        }
+
+        function paintFlow(code) {
+            var lanes = {};
+            var order = [];
+            code.split("\n").forEach(function (line) {
+                var actor = line.match(/^\s*(a\d+)\["(.+)"\]\s*$/);
+                if (actor) {
+                    order.push(actor[1]);
+                    lanes[actor[1]] = { name: actor[2], nodes: [] };
+                    return;
+                }
+                var useCase = line.match(/^\s*(a\d+)u(\d+)\["(.+)"\]\s*$/);
+                if (useCase && lanes[useCase[1]]) {
+                    lanes[useCase[1]].nodes.push({ id: useCase[1] + "u" + useCase[2], label: useCase[3] });
+                }
+            });
+            if (!order.length) {
+                return code;
+            }
+            var tones = [
+                ["#EEF0FF", "#5B6CFF", "#312E81"],
+                ["#ECFDF5", "#10B981", "#065F46"],
+                ["#FFF7ED", "#F59E0B", "#9A3412"],
+                ["#EFF6FF", "#3B82F6", "#1E3A8A"],
+                ["#FDF2F8", "#EC4899", "#9D174D"],
+                ["#F5F3FF", "#8B5CF6", "#5B21B6"]
+            ];
+            var out = ["flowchart LR"];
+            var styles = [];
+            order.forEach(function (id, index) {
+                var tone = tones[index % tones.length];
+                var lane = "g" + index;
+                out.push("  subgraph " + lane + "[\"" + lanes[id].name + "\"]");
+                out.push("    direction TB");
+                lanes[id].nodes.forEach(function (item) {
+                    out.push("    " + item.id + "[\"" + item.label + "\"]");
+                    styles.push("  style " + item.id + " fill:#FFFFFF,stroke:" + tone[1] + ",color:#1F2937,stroke-width:1.5px");
+                });
+                out.push("  end");
+                styles.push("  style " + lane + " fill:" + tone[0] + ",stroke:" + tone[1] + ",color:" + tone[2] + ",stroke-width:2px");
+            });
+            return out.concat(styles).join("\n");
+        }
+
+        function paintSequence(code) {
+            var out = [];
+            code.split("\n").forEach(function (line) {
+                var message = line.match(/^(\s*)([A-Za-z]+->>[A-Za-z]+:\s*)(.+)$/);
+                if (!message) {
+                    out.push(line);
+                    return;
+                }
+                var color = "rgb(253, 230, 138)";
+                if (message[3].indexOf("已完成") >= 0) {
+                    color = "rgb(167, 243, 208)";
+                } else if (message[3].indexOf("进行中") >= 0) {
+                    color = "rgb(191, 219, 254)";
+                } else if (message[3].indexOf("待办") >= 0) {
+                    color = "rgb(229, 231, 235)";
+                }
+                out.push("  rect " + color);
+                out.push("    " + line.trim());
+                out.push("  end");
+            });
+            if (out.join("\n").indexOf("autonumber") < 0) {
+                out.splice(1, 0, "  autonumber");
+            }
+            return out.join("\n");
+        }
+    })();
+</script>
 </body>
 </html>

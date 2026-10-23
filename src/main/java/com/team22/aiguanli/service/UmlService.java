@@ -84,34 +84,62 @@ public class UmlService {
         StringBuilder text = new StringBuilder("flowchart LR\n");
         if (groups.isEmpty()) {
             text.append("  empty[\"还没有用户故事\"]\n");
+            text.append("  style empty fill:#EEF0FF,stroke:#5B6CFF,color:#312E81,stroke-width:2px\n");
             return text.toString();
         }
+        List<String> styles = new ArrayList<>();
         int actorIndex = 0;
         for (ActorGroup group : groups) {
+            Tone tone = TONES[actorIndex % TONES.length];
+            String lane = "g" + actorIndex;
             String actorId = "a" + actorIndex;
-            text.append("  ").append(actorId).append("[\"").append(clean(group.name)).append("\"]\n");
+            text.append("  subgraph ").append(lane).append("[\"").append(clean(group.name)).append("\"]\n");
+            text.append("    direction TB\n");
             int caseIndex = 0;
             for (String useCase : group.cases) {
                 String caseId = actorId + "u" + caseIndex;
-                text.append("  ").append(caseId).append("[\"").append(clean(useCase)).append("\"]\n");
-                text.append("  ").append(actorId).append(" --> ").append(caseId).append("\n");
+                text.append("    ").append(caseId).append("[\"").append(clean(useCase)).append("\"]\n");
+                styles.add("  style " + caseId + " fill:#FFFFFF,stroke:" + tone.stroke
+                        + ",color:#1F2937,stroke-width:1.5px");
                 caseIndex++;
             }
+            text.append("  end\n");
+            styles.add("  style " + lane + " fill:" + tone.fill + ",stroke:" + tone.stroke
+                    + ",color:" + tone.title + ",stroke-width:2px");
             actorIndex++;
+        }
+        for (String style : styles) {
+            text.append(style).append("\n");
         }
         return text.toString();
     }
 
     public String sequenceMermaid(List<String> steps) {
-        StringBuilder text = new StringBuilder("sequenceDiagram\n  actor Member as 成员\n  participant Task as 任务\n");
+        StringBuilder text = new StringBuilder("sequenceDiagram\n  autonumber\n  actor Member as 成员\n  participant Task as 任务\n");
         if (steps == null || steps.isEmpty()) {
             text.append("  Note over Member,Task: 还没有状态变更\n");
             return text.toString();
         }
         for (String step : steps) {
-            text.append("  Member->>Task: ").append(clean(step)).append("\n");
+            String safe = clean(step);
+            text.append("  rect ").append(band(safe)).append("\n");
+            text.append("    Member->>Task: ").append(safe).append("\n");
+            text.append("  end\n");
         }
         return text.toString();
+    }
+
+    static String band(String step) {
+        if (step != null && step.contains("已完成")) {
+            return "rgb(167, 243, 208)";
+        }
+        if (step != null && step.contains("进行中")) {
+            return "rgb(191, 219, 254)";
+        }
+        if (step != null && step.contains("待办")) {
+            return "rgb(229, 231, 235)";
+        }
+        return "rgb(253, 230, 138)";
     }
 
     private List<String> sequenceSteps(Long projectId) {
@@ -180,6 +208,18 @@ public class UmlService {
             return "";
         }
         return value.replace("\"", "'").replace("\n", " ");
+    }
+
+    private static final Tone[] TONES = {
+            new Tone("#EEF0FF", "#5B6CFF", "#312E81"),
+            new Tone("#ECFDF5", "#10B981", "#065F46"),
+            new Tone("#FFF7ED", "#F59E0B", "#9A3412"),
+            new Tone("#EFF6FF", "#3B82F6", "#1E3A8A"),
+            new Tone("#FDF2F8", "#EC4899", "#9D174D"),
+            new Tone("#F5F3FF", "#8B5CF6", "#5B21B6")
+    };
+
+    private record Tone(String fill, String stroke, String title) {
     }
 
     public static class Diagram {

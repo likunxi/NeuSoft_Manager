@@ -20,6 +20,8 @@ import com.team22.aiguanli.service.StoryBoardService;
 import com.team22.aiguanli.service.UmlService;
 import com.team22.aiguanli.service.ViewSyncService;
 import com.team22.aiguanli.service.RoleAdminService;
+import com.team22.aiguanli.service.ForecastService;
+import com.team22.aiguanli.service.ScheduleService;
 import com.team22.aiguanli.service.StatsService;
 import com.team22.aiguanli.service.TaskRemovalService;
 import com.team22.aiguanli.service.TaskStages;
@@ -57,6 +59,8 @@ public class AppController {
     private final LinkRuleService linkRuleService;
     private final ViewSyncService viewSyncService;
     private final AiAssistService aiAssistService;
+    private final ScheduleService scheduleService;
+    private final ForecastService forecastService;
     private final LlmSettings llmSettings;
     private final TaskRemovalService taskRemovalService;
 
@@ -73,6 +77,8 @@ public class AppController {
                          LinkRuleService linkRuleService,
                          ViewSyncService viewSyncService,
                          AiAssistService aiAssistService,
+                         ScheduleService scheduleService,
+                         ForecastService forecastService,
                          LlmSettings llmSettings,
                          TaskRemovalService taskRemovalService) {
         this.userMapper = userMapper;
@@ -88,6 +94,8 @@ public class AppController {
         this.linkRuleService = linkRuleService;
         this.viewSyncService = viewSyncService;
         this.aiAssistService = aiAssistService;
+        this.scheduleService = scheduleService;
+        this.forecastService = forecastService;
         this.llmSettings = llmSettings;
         this.taskRemovalService = taskRemovalService;
     }
@@ -460,6 +468,7 @@ public class AppController {
         model.addAttribute("userNames", nameMap());
         model.addAttribute("dependencies", ganttService.dependencyLines(id));
         model.addAttribute("syncEvents", viewSyncService.recent(id, ViewSyncService.STORY_CHANGED, 8));
+        model.addAttribute("scheduleEvents", viewSyncService.recent(id, ViewSyncService.SCHEDULE_APPLIED, 3));
         return "gantt";
     }
 
@@ -549,6 +558,9 @@ public class AppController {
         model.addAttribute("reports", aiAssistService.reports(id));
         model.addAttribute("history", aiAssistService.history(id));
         model.addAttribute("alerts", aiAssistService.openAlerts(id));
+        model.addAttribute("schedule", scheduleService.pending(id));
+        model.addAttribute("prediction", forecastService.latest(id));
+        model.addAttribute("advice", forecastService.latestAdvice(id));
         LlmSettings.Snapshot llm = llmSettings.snapshot();
         model.addAttribute("llmBaseUrl", llm.baseUrl());
         model.addAttribute("llmModel", llm.model());
@@ -614,6 +626,49 @@ public class AppController {
         AiAssistService.ReviewResult result = aiAssistService.review(
                 id, suggestionId, decision, comment, titles, wants, picked, me);
         ra.addFlashAttribute("ok", result.getMessage());
+        return aiBack(id, panel);
+    }
+
+    @PostMapping("/projects/{id}/ai/schedule")
+    @RequirePerm("task:create")
+    public String proposeSchedule(@PathVariable Long id,
+                                  @RequestParam(required = false) Integer panel,
+                                  LoginUser me,
+                                  RedirectAttributes ra) {
+        int count = scheduleService.propose(id, me);
+        ra.addFlashAttribute("ok", "已生成 " + count + " 条待办的排期建议。甘特图还没改，确认后才写入。");
+        return aiBack(id, panel);
+    }
+
+    @PostMapping("/projects/{id}/ai/schedule/{suggestionId}")
+    @RequirePerm("task:create")
+    public String applySchedule(@PathVariable Long id,
+                                @PathVariable Long suggestionId,
+                                @RequestParam String decision,
+                                @RequestParam(required = false) Integer panel,
+                                LoginUser me,
+                                RedirectAttributes ra) {
+        ra.addFlashAttribute("ok", scheduleService.apply(id, suggestionId, decision, me));
+        return aiBack(id, panel);
+    }
+
+    @PostMapping("/projects/{id}/ai/forecast")
+    @RequirePerm("task:create")
+    public String predictProgress(@PathVariable Long id,
+                                  @RequestParam(required = false) Integer panel,
+                                  LoginUser me,
+                                  RedirectAttributes ra) {
+        ra.addFlashAttribute("ok", forecastService.predict(id, me));
+        return aiBack(id, panel);
+    }
+
+    @PostMapping("/projects/{id}/ai/advice")
+    @RequirePerm("task:create")
+    public String adviseEfficiency(@PathVariable Long id,
+                                   @RequestParam(required = false) Integer panel,
+                                   LoginUser me,
+                                   RedirectAttributes ra) {
+        ra.addFlashAttribute("ok", forecastService.advise(id, me));
         return aiBack(id, panel);
     }
 

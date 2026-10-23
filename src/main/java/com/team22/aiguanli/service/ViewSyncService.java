@@ -25,6 +25,7 @@ public class ViewSyncService {
     public static final String MEMBER_MAP = "member_map";
     public static final String STORY_CHANGED = "story_changed";
     public static final String TASK_STATUS_CHANGED = "task_status_changed";
+    public static final String SCHEDULE_APPLIED = "schedule_applied";
 
     private final VwLinkRuleMapper ruleMapper;
     private final VwSyncEventMapper eventMapper;
@@ -78,6 +79,27 @@ public class ViewSyncService {
             row.setCreatedAt(LocalDateTime.now());
             row.setProcessedAt(LocalDateTime.now());
             eventMapper.insert(row);
+        }
+    }
+
+    /** 排期写入不走联动开关。甘特图底部只留最近三条。 */
+    public void noteSchedule(Long projectId, String summary, Long userId) {
+        VwSyncEvent row = new VwSyncEvent();
+        row.setProjectId(projectId);
+        row.setEventType(SCHEDULE_APPLIED);
+        row.setSourceView("schedule");
+        row.setPayloadJson("{\"summary\":\"" + escape(summary) + "\"}");
+        row.setProcessed(1);
+        row.setCreatedBy(userId);
+        row.setCreatedAt(LocalDateTime.now());
+        row.setProcessedAt(LocalDateTime.now());
+        eventMapper.insert(row);
+        List<VwSyncEvent> rows = eventMapper.selectList(new LambdaQueryWrapper<VwSyncEvent>()
+                .eq(VwSyncEvent::getProjectId, projectId)
+                .eq(VwSyncEvent::getEventType, SCHEDULE_APPLIED)
+                .orderByDesc(VwSyncEvent::getId));
+        for (int i = 3; i < rows.size(); i++) {
+            eventMapper.deleteById(rows.get(i).getId());
         }
     }
 
